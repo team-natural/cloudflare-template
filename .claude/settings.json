@@ -1,0 +1,16 @@
+{
+  "enabledMcpjsonServers": [
+    "context7",
+    "context-mode",
+    "semble"
+  ],
+  "permissions": {
+    "allow": [
+      "Bash(npm *)",
+      "Bash(npx *)",
+      "Bash(node *)",
+      "Bash(python3 *)",
+      "mcp__context7"
+    ]
+  }
+}

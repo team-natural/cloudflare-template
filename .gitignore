@@ -1,0 +1,33 @@
+# --- OS ---
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# --- Editor / IDE ---
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
+
+# --- Node.js / Frontend ---
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+dist/
+build/
+
+# --- Secrets / local env ---
+.dev.vars
+.env
+.env.*
+!.devcontainer/.env
+
+# --- Claude Code ---
+settings.local.json
+
+# --- Others ---
+*.log
