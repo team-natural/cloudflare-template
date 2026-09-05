@@ -1,0 +1,22 @@
+{
+  "name": "@app/schema",
+  "private": true,
+  "license": "UNLICENSED",
+  "type": "module",
+  "version": "1.0.0",
+  "exports": {
+    ".": "./src/schema.ts",
+    "./ulid": "./src/ulid.ts"
+  },
+  "scripts": {
+    "db:generate": "drizzle-kit generate",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.45.0"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.31.0",
+    "typescript": "^5.7.0"
+  }
+}

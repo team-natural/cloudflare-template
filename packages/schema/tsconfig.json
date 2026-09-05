@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    // WebWorker provides the Workers-runtime globals (crypto.getRandomValues in src/ulid.ts).
+    "lib": ["ES2022", "WebWorker"],
+    "types": [],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true
+  },
+  "include": ["src/**/*.ts", "drizzle.config.ts"]
+}

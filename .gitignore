@@ -1,24 +1,29 @@
 # --- OS ---
 .DS_Store
-Thumbs.db
-ehthumbs.db
 Desktop.ini
+ehthumbs.db
+Thumbs.db
 
 # --- Editor / IDE ---
-.vscode/
 .idea/
-*.swp
-*.swo
+.vscode/
 *.sublime-project
 *.sublime-workspace
+*.swo
+*.swp
 
 # --- Node.js / Frontend ---
+.astro/
+build/
+dist/
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-dist/
-build/
+
+# --- Cloudflare / Wrangler ---
+.wrangler/
+worker-configuration.d.ts
 
 # --- pnpm / Turborepo ---
 .pnpm-store/
