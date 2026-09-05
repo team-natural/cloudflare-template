@@ -20,6 +20,10 @@ yarn-error.log*
 dist/
 build/
 
+# --- pnpm / Turborepo ---
+.pnpm-store/
+.turbo/
+
 # --- Secrets / local env ---
 .dev.vars
 .env
