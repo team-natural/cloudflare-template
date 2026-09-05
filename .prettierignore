@@ -1,0 +1,10 @@
+.astro/
+.claude/
+.pnpm-store/
+.turbo/
+.wrangler/
+*.md
+dist/
+node_modules/
+pnpm-lock.yaml
+worker-configuration.d.ts

@@ -1,0 +1,10 @@
+{
+  "printWidth": 9999,
+  "plugins": ["prettier-plugin-astro", "prettier-plugin-svelte", "prettier-plugin-tailwindcss"],
+  "overrides": [
+    { "files": "*.astro", "options": { "parser": "astro" } },
+    { "files": "*.svelte", "options": { "parser": "svelte" } },
+    { "files": "apps/admin/**", "options": { "tailwindStylesheet": "./apps/admin/src/styles/admin.css" } },
+    { "files": "apps/public/**", "options": { "tailwindStylesheet": "./apps/public/src/styles/global.css" } }
+  ]
+}
