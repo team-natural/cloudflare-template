@@ -1,4 +1,4 @@
-# blank-template
+# Development Environment
 
 A generic Dev Container-based project template. Node.js and Claude Code come
 pre-configured, so you can use this as the starting point for a new project.

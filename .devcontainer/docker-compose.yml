@@ -4,9 +4,11 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "127.0.0.1:${APP_PORT_DEV}:${APP_PORT_DEV}"
+      - "127.0.0.1:${APP_PORT_DEV_PUBLIC}:${APP_PORT_DEV_PUBLIC}"
+      - "127.0.0.1:${APP_PORT_DEV_ADMIN}:${APP_PORT_DEV_ADMIN}"
     environment:
-      - APP_PORT_DEV=${APP_PORT_DEV}
+      - APP_PORT_DEV_PUBLIC=${APP_PORT_DEV_PUBLIC}
+      - APP_PORT_DEV_ADMIN=${APP_PORT_DEV_ADMIN}
       - CLAUDE_CONFIG_DIR=/home/vscode/.claude
     volumes:
       - ..:/workspace:cached

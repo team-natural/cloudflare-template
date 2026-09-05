@@ -1,5 +1,5 @@
 {
-  "name": "BLANK-TEMPLATE",
+  "name": "cloudflare-template",
   "dockerComposeFile": "docker-compose.yml",
   "service": "app",
   "workspaceFolder": "/workspace",
@@ -13,7 +13,8 @@
     "DISABLE_AUTOUPDATER": "1"
   },
   "portsAttributes": {
-    "5173": { "label": "Dev Server", "onAutoForward": "notify" }
+    "5173": { "label": "Public Dev Server", "onAutoForward": "notify" },
+    "5174": { "label": "Admin Dev Server", "onAutoForward": "notify" }
   },
   "postCreateCommand": "bash .devcontainer/setup.sh"
 }
