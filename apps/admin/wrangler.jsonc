@@ -19,9 +19,9 @@
     "AUTH_LOCKOUT_MINUTES": "15",
   },
 
-  // Shared with apps/public — create once (wrangler d1 create / wrangler r2 bucket create)
-  // from either app and copy the generated ids into both. KV is admin-only.
-  // migrations_dir is non-inheritable, so it's repeated in each env block below.
+  // Shared with apps/public: create once, then copy the ids into both. They must match —
+  // database_id also keys the shared local sqlite file. KV is admin-only.
+  // migrations_dir is non-inheritable, like vars above.
   "d1_databases": [
     {
       "binding": "DB",

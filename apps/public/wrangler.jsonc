@@ -12,8 +12,8 @@
     "enabled": true,
   },
 
-  // Shared with apps/admin — create once (wrangler d1 create / wrangler r2 bucket create)
-  // from either app and copy the generated ids into both.
+  // Shared with apps/admin: create once, then copy the ids into both. They must match —
+  // database_id also keys the shared local sqlite file.
   "d1_databases": [
     {
       "binding": "DB",

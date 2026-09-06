@@ -23,6 +23,7 @@ yarn-error.log*
 
 # --- Cloudflare / Wrangler ---
 .wrangler/
+.wrangler-state/
 worker-configuration.d.ts
 
 # --- pnpm / Turborepo ---

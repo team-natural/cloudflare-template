@@ -5,7 +5,12 @@ import { defineConfig } from "astro/config";
 
 export default defineConfig({
   output: "server",
-  adapter: cloudflare(),
+  adapter: cloudflare({
+    // Shared with apps/admin, as in production.
+    persistState: { path: "../../.wrangler-state" },
+    // Distinct per app, or both apps fight over 9229. Explicit ports don't auto-fall back.
+    inspectorPort: Number(process.env.APP_INSPECTOR_PORT_PUBLIC ?? 9229),
+  }),
   integrations: [svelte()],
   vite: {
     plugins: [tailwindcss()],
