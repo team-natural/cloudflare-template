@@ -10,7 +10,9 @@
   "containerEnv": {
     "ENABLE_CLAUDEAI_MCP_SERVERS": "false",
     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
-    "DISABLE_AUTOUPDATER": "1"
+    "DISABLE_AUTOUPDATER": "1",
+    "NODE_OPTIONS": "--dns-result-order=ipv4first"
+    // Works around a localhost IPv4/IPv6 mismatch that breaks astro build's prerendering step.
   },
   "portsAttributes": {
     "5173": { "label": "Public Dev Server", "onAutoForward": "notify" },
