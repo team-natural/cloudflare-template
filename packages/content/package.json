@@ -1,0 +1,19 @@
+{
+  "name": "@app/content",
+  "private": true,
+  "license": "UNLICENSED",
+  "type": "module",
+  "version": "1.0.0",
+  "exports": {
+    ".": "./src/schema.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "^4.5.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  }
+}

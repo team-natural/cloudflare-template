@@ -1,0 +1,26 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { getCollection, render } from "astro:content";
+
+// output: "server" (astro.config.mjs) makes every page server-rendered by default;
+// getStaticPaths() is silently ignored without this, since these articles are
+// build-time content, not per-request data.
+export const prerender = true;
+
+export async function getStaticPaths() {
+  const articles = await getCollection("articles");
+  return articles.map((article) => ({
+    params: { slug: article.id },
+    props: { article },
+  }));
+}
+
+const { article } = Astro.props;
+const { Content } = await render(article);
+---
+
+<Layout title={article.data.title}>
+  <h1>{article.data.title}</h1>
+  <p>{article.data.description}</p>
+  <Content />
+</Layout>
