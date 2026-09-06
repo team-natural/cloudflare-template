@@ -4,76 +4,151 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## About this template
 
-This repository is not a specific project — it's the **standard template** the team/organization
-uses as the starting point when spinning up a new project. Individual projects are created by
-copying/forking this repository.
+This repository is not a specific project — it's the **standard template** the team uses as the
+starting point for a new project, built for Astro SSR on Cloudflare Workers. Individual projects
+are created by copying/forking it.
 
-## Bootstrapping a new project from this template
+`apps/public` is the main domain, `apps/admin` a subdomain of the same service. They are separate
+Workers but share one D1, one R2 bucket, and the schema in `packages/schema`.
 
-When this repo is being adapted into a real project (as opposed to being edited as the template
-itself), update these first:
+## Bootstrapping a new project
 
-1. `.devcontainer/.env`: set `COMPOSE_PROJECT_NAME` to a name unique to the project (docker compose
-   uses it to prefix container, volume, and network names — this also keeps each project's
-   `claude-config` volume, see below, from colliding with other projects) and change
-   `APP_PORT_DEV` so it doesn't collide with other projects' ports.
-2. `name` in `.devcontainer/devcontainer.json`, if it should match the project name.
-3. `.devcontainer/Dockerfile`: add any OS packages the project needs.
-4. `package.json`: add real dependencies and scripts (build/lint/test/dev). It currently ships as
-   an empty skeleton (`type: module`, no dependencies, no scripts).
+1. `.devcontainer/.env`: set `COMPOSE_PROJECT_NAME` (docker compose prefixes containers, volumes
+   and networks with it, and it keeps each project's `claude-config` volume separate), and change
+   `APP_PORT_DEV_PUBLIC` / `APP_PORT_DEV_ADMIN` so they don't collide with other projects.
+2. `.devcontainer/devcontainer.json`: `name`, and the `portsAttributes` keys if the ports changed.
+3. `apps/*/wrangler.jsonc`: replace every `replace-with-*` placeholder. **`database_id` must be
+   identical in both apps** — it also keys the local sqlite file, so a mismatch silently gives each
+   app its own database.
+4. If the project has no public-side login, delete the `members` / `member_sessions` tables,
+   `apps/public/src/lib/server/`, `apps/public/src/pages/{login.astro,mypage,api}`, and the KV
+   binding from `apps/public/wrangler.jsonc` — **before the first `pnpm db:generate`**, or the
+   migration will contain them.
+5. `pnpm db:generate` → `pnpm db:migrate` → seed an admin (see Commands).
 
-## Starting the container
+## Commands
 
-- VS Code: run `Dev Containers: Reopen in Container` from the command palette
-- CLI: `docker compose -f .devcontainer/docker-compose.yml up -d`
+| Command | Notes |
+| --- | --- |
+| `pnpm dev` | Both apps. public on 5173, admin on 5174 by default |
+| `pnpm check` | format + lint + typecheck + unit tests |
+| `pnpm test` | Vitest, all packages |
+| `pnpm test:e2e` | Playwright. Requires `pnpm db:generate` first |
+| `pnpm build` | |
+| `pnpm db:generate` | Drizzle → `packages/schema/migrations/` |
+| `pnpm db:migrate` | Applies to the shared local D1 |
+| `pnpm --filter admin seed -- --table=admin_users --email=… --password=… --name=…` | `--table=members` for the public side. Values need `=`, not a space |
 
-On first startup, `.devcontainer/setup.sh` runs automatically as the `postCreateCommand`: it runs
-`npm install` and installs the `context-mode` MCP server globally (inside the container).
+## Container
 
-## Container architecture
+`docker-compose.yml` mounts only this repository at `/workspace`; sibling projects on the host are
+deliberately invisible. The container just `sleep infinity`s and devcontainer tooling execs in.
+Node 24 and the `claude` CLI come from Dev Container Features, so nothing is installed on the host.
 
-- `docker-compose.yml` mounts only this repository into the container at `/workspace`
-  (`workspaceFolder` in `devcontainer.json` matches). Sibling projects on the host are deliberately
-  NOT visible from inside the container — each project gets its own isolated container. The
-  container itself just `sleep infinity`s; devcontainer tooling execs into it.
-- `devcontainer.json` adds two Dev Container Features: Node.js (`24`) and `claude-code`, so both
-  `node`/`npm` and the `claude` CLI are available with no manual setup and nothing is installed on
-  the host.
-- Claude Code auth/settings persist in a named Docker volume (`claude-config`, mounted at
-  `/home/vscode/.claude`) rather than being bind-mounted from the host, so each project container
-  has its own independent login and does not read or write `~/.claude` on the host. `CLAUDE_CONFIG_DIR`
-  is set to `/home/vscode/.claude` so Claude Code picks up that location. The volume is root-owned
-  the first time it's created, so `setup.sh` runs `sudo chown -R vscode:vscode /home/vscode/.claude`
-  on every `postCreateCommand` run to keep it writable. Because the login lives in the volume (not
-  the repo or the host), run `claude` once inside each new project's container and log in there.
-- `Dockerfile` is based on `mcr.microsoft.com/devcontainers/base:bookworm` and additionally
-  installs `uv` (required by the Semble MCP server, which runs via `uvx`).
+Claude Code's auth lives in a named volume (`claude-config` at `/home/vscode/.claude`), not a host
+bind mount, so **each project container needs its own `claude` login**. The volume is root-owned on
+creation, which is why `setup.sh` chowns it on every `postCreateCommand`.
 
-## Port configuration
+`setup.sh` also runs `corepack enable` + `pnpm install`, and installs `context-mode`,
+`@playwright/mcp` and Chromium. `Dockerfile` adds `uv`, which the Semble MCP server needs.
 
-Both sides of the port mapping in `docker-compose.yml` use `APP_PORT_DEV` from `.devcontainer/.env`
-(default 5173) — the container listens on `APP_PORT_DEV` and it's published to the same port
-number on the host, bound to `127.0.0.1` only. The intended workflow is running multiple projects
-created from this template side by side, so `APP_PORT_DEV` is expected to be changed per project to
-avoid port collisions — don't assume 5173 is fixed or safe to hardcode elsewhere. Port publishing is
-handled entirely by docker compose; `devcontainer.json` deliberately has no `forwardPorts`.
+Ports are published by docker compose only (`devcontainer.json` has no `forwardPorts`), bound to
+`127.0.0.1`.
 
-Note: `devcontainer.json`'s `portsAttributes` still keys its dev-server label on the literal port
-`"5173"`. If `APP_PORT_DEV` is changed away from 5173 for a project, that label will no longer match
-the actual forwarded port — update the `portsAttributes` key alongside `APP_PORT_DEV` when
-bootstrapping a project that needs a different port.
+## Local database
+
+Both apps open the same store: `persistState: { path: "../../.wrangler-state" }` in each
+`astro.config.mjs`, and every wrangler CLI call passes `--persist-to ../../.wrangler-state`. Drop
+that flag and you silently get a second, empty database.
+
+`packages/schema/migrations/` is generated, not shipped — the template has none, each project
+generates its own and commits them. Two consequences:
+
+- Deleting `migrations/` means deleting `.wrangler-state/` too. Regenerating produces a new random
+  filename, which no longer matches what `d1_migrations` recorded, and the next apply fails with
+  `table already exists`.
+- Deleting only the `.sql` file leaves `meta/`, and drizzle-kit then reports "no changes" and
+  generates nothing.
+
+## Dev servers
+
+`astro dev` **detaches into the background** when it detects an AI coding agent, so it survives the
+shell that started it. Stop it with `pnpm --filter admin exec astro dev stop`, not by killing the
+foreground process. Playwright sets `ASTRO_DEV_BACKGROUND=0` for the same reason.
+
+Each app pins its own `inspectorPort` (env-overridable), because an explicit port loses wrangler's
+automatic fallback and both apps would otherwise fight over 9229.
+
+`apps/admin` delays dev startup by 2.5s. Both apps recovering the shared WAL at once kills one of
+them; letting `apps/public` go first avoids it.
+
+Builds need `NODE_OPTIONS=--dns-result-order=ipv4first` — Node resolves `localhost` to `::1` while
+the prerender fetch listens on `127.0.0.1`. It is set both in `devcontainer.json` and in each
+app's `build` script, so CI works too.
+
+## Architecture
+
+```
+apps/public   main domain: content pages, member login
+apps/admin    subdomain: admin console (shadcn-svelte lives here only)
+packages/schema      Drizzle tables, ULID, D1 client
+packages/server-kit  password hashing, lockout, session rules, HTTP envelope
+packages/content     developer-maintained Markdown for Content Collections
+```
+
+Layering inside an app is `pages/ → services/ → schema`. API routes parse input with Zod, call a
+service, and convert thrown `AppError`s with `toErrorResponse`. Pages guard themselves — there is
+no auth middleware, and unlike an API route a page redirects instead of answering 401.
+
+Client-maintained content belongs in D1 with an admin screen; developer-maintained content belongs
+in `packages/content` as Markdown. Prefer Content Collections when the choice is open — it costs no
+database reads.
+
+## Authentication
+
+AdminUser and Member sessions never share a table or cookie: an admin token must not authenticate
+on the public site. What they do share is `packages/server-kit/src/auth/session.ts` — token
+generation, TTL validation and the expiry/status check. Change those in one place.
+
+Two rules that look like implementation details but are not:
+
+- Miss paths (`unknown email`, `deactivated`) still run `burnPasswordVerification`. Returning early
+  makes them answer far faster than a real account, which is a usable enumeration oracle.
+- A missing `SESSION_TTL_DAYS` or `AUTH_LOCKOUT_*` var must throw. `Number(undefined)` is `NaN`,
+  every comparison against it is false, and the lockout would silently never engage.
+
+`apps/public` sets `Cache-Control: private, no-store` on member routes **in middleware**, not in
+page frontmatter: `Astro.response.headers` does not reach a `Response` returned from a page, so
+redirects would go out cacheable. The admin subdomain needs no equivalent.
+
+## Testing
+
+Unit tests run inside workerd via `@cloudflare/vitest-plugin`, not Node — `hashPassword` needs Web
+Crypto and lockout needs a real KV. It peers on `vitest ^4.1.0`; vitest 5 makes miniflare fail to
+boot with a bare `SyntaxError`.
+
+E2E seeds its own account in `globalSetup`, so no env vars are needed. `pnpm test:e2e` runs with
+`--concurrency=1`: both suites drive a real dev server against the one local D1, and running them
+in parallel corrupts it.
+
+Cover what E2E cannot reach — fail-closed config, expiry, timing parity — in Vitest. Cover
+hydration in E2E: a missing `client:*` directive still renders server-side, so only an interaction
+catches it.
 
 ## MCP servers
 
-Configured in `.mcp.json` and enabled in `.claude/settings.json`:
+Configured in `.mcp.json`, enabled in `.claude/settings.json`.
 
-- `context7` — remote HTTP server for up-to-date library/framework docs.
-- `context-mode` — local context-compression server, installed globally (in-container) by
-  `setup.sh` and invoked directly by command name.
-- `semble` — local code search server, run via `uvx` (needs the `uv` install in the Dockerfile).
+- `context7` — library/framework docs
+- `context-mode` — context compression
+- `semble` — code search (needs `uv`)
+- `playwright` — browser automation. `--browser chromium` is required: the default is branded
+  Chrome, which is not installed. `--output-dir` only applies when no filename is given, so asking
+  for a named screenshot writes it to the repo root.
 
-## Current state / commands
+## Comments
 
-`package.json` currently has no dependencies and no scripts (no build/lint/test commands exist
-yet). Check `package.json` before assuming any `npm run <script>` exists. When a real application
-is added on top of this template, build/lint/test scripts should be added there.
+Write comments only where the code cannot say it: a non-obvious decision, a constraint discovered
+by debugging, a security property that reads as removable. Do not restate what the code does, and
+do not explain what a reader can see. Keep them to one or two lines. If a comment is long, the
+reason usually belongs in a doc, not above the line.
