@@ -14,3 +14,12 @@ pnpm install
 
 # Install Context Mode (context compression MCP) into the container
 npm install -g context-mode
+
+# Global, not a devDependency: .mcp.json invokes it with `npx --no-install`, and no project's
+# package.json should carry it just to satisfy an MCP client
+npm install -g @playwright/mcp
+
+# Chromium for `playwright test` and for the MCP server. They share ~/.cache/ms-playwright but
+# pin their own Playwright versions, so both are run; the second is a no-op while they match
+pnpm --filter admin exec playwright install --with-deps chromium
+npx @playwright/mcp install-browser chromium

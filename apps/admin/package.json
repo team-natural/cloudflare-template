@@ -11,7 +11,8 @@
     "typecheck": "wrangler types && astro check",
     "seed:admin": "tsx scripts/seed-admin.mjs",
     "db:migrate": "wrangler d1 migrations apply DB --local --persist-to ../../.wrangler-state",
-    "db:migrate:remote": "wrangler d1 migrations apply DB --remote"
+    "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
+    "test:e2e": "playwright test --pass-with-no-tests"
   },
   "dependencies": {
     "@app/schema": "workspace:*",
@@ -32,6 +33,7 @@
   "devDependencies": {
     "@astrojs/check": "^0.9.0",
     "@internationalized/date": "^3.12.4",
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/vite": "^4.0.0",
     "@types/node": "^22.0.0",
     "shadcn-svelte": "^1.5.1",

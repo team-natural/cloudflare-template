@@ -10,6 +10,10 @@
     "semble": {
       "command": "uvx",
       "args": ["--from", "semble[mcp]", "semble"]
+    },
+    "playwright": {
+      "command": "npx",
+      "args": ["--no-install", "@playwright/mcp", "--browser", "chromium", "--headless", "--no-sandbox", "--output-dir", ".playwright-mcp"]
     }
   }
 }

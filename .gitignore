@@ -30,6 +30,10 @@ worker-configuration.d.ts
 .pnpm-store/
 .turbo/
 
+# --- Playwright ---
+.playwright-mcp/
+test-results/
+
 # --- Secrets / local env ---
 .dev.vars
 .dev.vars.*
