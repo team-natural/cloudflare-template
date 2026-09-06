@@ -56,14 +56,17 @@ export default tseslint.config(
         { type: "public-components", pattern: "apps/public/src/components" },
         { type: "admin-pages", pattern: "apps/admin/src/pages" },
         { type: "admin-components", pattern: "apps/admin/src/lib/components" },
+        { type: "admin-server", pattern: "apps/admin/src/lib/server/*" },
         { type: "packages", pattern: "packages/*/src" },
       ],
     },
     rules: {
       // Two independently deployable Workers (apps/public, apps/admin) — neither app may reach
       // into the other's source, and packages/* is shared code that must not depend on either app.
-      // No server-layer (services/db/auth) policies yet — that code doesn't exist until the auth
-      // backend is built; add those policies alongside it.
+      // admin-server (auth/services/validation — db/http moved to packages/*) is the one-way
+      // dependency target: pages/API routes and UI components may call into it, never the reverse.
+      // No rule yet forcing pages through the service layer instead of @app/schema directly —
+      // add that once the API routes exist to check it against.
       "boundaries/dependencies": [
         "error",
         {
@@ -78,7 +81,7 @@ export default tseslint.config(
               disallow: {
                 to: {
                   element: {
-                    types: { anyOf: ["admin-pages", "admin-components"] },
+                    types: { anyOf: ["admin-pages", "admin-components", "admin-server"] },
                   },
                 },
               },
@@ -87,7 +90,7 @@ export default tseslint.config(
             {
               from: {
                 element: {
-                  types: { anyOf: ["admin-pages", "admin-components"] },
+                  types: { anyOf: ["admin-pages", "admin-components", "admin-server"] },
                 },
               },
               disallow: {
@@ -100,13 +103,21 @@ export default tseslint.config(
               message: "apps/admin must not import from apps/public — share code via packages/* instead",
             },
             {
+              from: { element: { type: "admin-components" } },
+              disallow: { to: { element: { type: "admin-server" } } },
+              message: "UI components must not import server layers — delegate via API routes",
+            },
+            {
+              from: { element: { type: "admin-server" } },
+              disallow: { to: { element: { types: { anyOf: ["admin-pages", "admin-components"] } } } },
+              message: "Server layers must not depend on UI layers — dependencies flow one way",
+            },
+            {
               from: { element: { type: "packages" } },
               disallow: {
                 to: {
                   element: {
-                    types: {
-                      anyOf: ["public-pages", "public-components", "admin-pages", "admin-components"],
-                    },
+                    types: { anyOf: ["public-pages", "public-components", "admin-pages", "admin-components", "admin-server"] },
                   },
                 },
               },

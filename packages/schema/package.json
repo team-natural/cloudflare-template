@@ -6,7 +6,8 @@
   "version": "1.0.0",
   "exports": {
     ".": "./src/schema.ts",
-    "./ulid": "./src/ulid.ts"
+    "./ulid": "./src/ulid.ts",
+    "./client": "./src/client.ts"
   },
   "scripts": {
     "db:generate": "drizzle-kit generate",
@@ -16,6 +17,7 @@
     "drizzle-orm": "^0.45.0"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^5.0.0",
     "drizzle-kit": "^0.31.0",
     "typescript": "^5.7.0"
   }
