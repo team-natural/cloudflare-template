@@ -140,6 +140,8 @@ catches it.
 Configured in `.mcp.json`, enabled in `.claude/settings.json`.
 
 - `context7` — library/framework docs
+- `astro-docs`, `svelte`, `cloudflare-docs` — the official docs servers for this stack. Prefer
+  them over `context7` for those three
 - `context-mode` — context compression
 - `semble` — code search (needs `uv`)
 - `playwright` — browser automation. `--browser chromium` is required: the default is branded

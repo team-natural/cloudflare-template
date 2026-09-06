@@ -1,20 +1,26 @@
 {
   "enabledMcpjsonServers": [
-    "context7",
+    "astro-docs",
+    "cloudflare-docs",
     "context-mode",
+    "context7",
     "playwright",
-    "semble"
+    "semble",
+    "svelte"
   ],
   "permissions": {
     "allow": [
-      "Bash(pnpm *)",
+      "Bash(node *)",
       "Bash(npm *)",
       "Bash(npx *)",
-      "Bash(node *)",
+      "Bash(pnpm *)",
       "Bash(python3 *)",
       "Read(//workspace/**)",
+      "mcp__astro-docs",
+      "mcp__cloudflare-docs",
       "mcp__context7",
-      "mcp__playwright"
+      "mcp__playwright",
+      "mcp__svelte"
     ],
     "ask": [
       "mcp__playwright__browser_run_code_unsafe",
