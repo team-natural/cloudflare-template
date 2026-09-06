@@ -11,4 +11,55 @@
   "observability": {
     "enabled": true,
   },
+
+  // Shared with apps/public — create once (wrangler d1 create / wrangler r2 bucket create)
+  // from either app and copy the generated ids into both. KV is admin-only.
+  // migrations_dir is non-inheritable, so it's repeated in each env block below.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "replace-with-db-name",
+      "database_id": "replace-with-database-id",
+      "migrations_dir": "../../packages/schema/migrations",
+    },
+  ],
+  "r2_buckets": [
+    {
+      "binding": "BUCKET",
+      "bucket_name": "replace-with-bucket-name",
+    },
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "KV",
+      "id": "replace-with-kv-namespace-id",
+    },
+  ],
+
+  "env": {
+    "staging": {
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "replace-with-db-name-staging",
+          "database_id": "replace-with-database-id-staging",
+          "migrations_dir": "../../packages/schema/migrations",
+        },
+      ],
+      "r2_buckets": [{ "binding": "BUCKET", "bucket_name": "replace-with-bucket-name-staging" }],
+      "kv_namespaces": [{ "binding": "KV", "id": "replace-with-kv-namespace-id-staging" }],
+    },
+    "production": {
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "replace-with-db-name-production",
+          "database_id": "replace-with-database-id-production",
+          "migrations_dir": "../../packages/schema/migrations",
+        },
+      ],
+      "r2_buckets": [{ "binding": "BUCKET", "bucket_name": "replace-with-bucket-name-production" }],
+      "kv_namespaces": [{ "binding": "KV", "id": "replace-with-kv-namespace-id-production" }],
+    },
+  },
 }

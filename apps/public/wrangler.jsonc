@@ -11,4 +11,43 @@
   "observability": {
     "enabled": true,
   },
+
+  // Shared with apps/admin — create once (wrangler d1 create / wrangler r2 bucket create)
+  // from either app and copy the generated ids into both.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "replace-with-db-name",
+      "database_id": "replace-with-database-id",
+    },
+  ],
+  "r2_buckets": [
+    {
+      "binding": "BUCKET",
+      "bucket_name": "replace-with-bucket-name",
+    },
+  ],
+
+  "env": {
+    "staging": {
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "replace-with-db-name-staging",
+          "database_id": "replace-with-database-id-staging",
+        },
+      ],
+      "r2_buckets": [{ "binding": "BUCKET", "bucket_name": "replace-with-bucket-name-staging" }],
+    },
+    "production": {
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "replace-with-db-name-production",
+          "database_id": "replace-with-database-id-production",
+        },
+      ],
+      "r2_buckets": [{ "binding": "BUCKET", "bucket_name": "replace-with-bucket-name-production" }],
+    },
+  },
 }
