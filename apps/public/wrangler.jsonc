@@ -12,8 +12,16 @@
     "enabled": true,
   },
 
+  // vars is non-inheritable, so it's repeated in each env block below.
+  "vars": {
+    "SESSION_TTL_DAYS": "30",
+    "AUTH_LOCKOUT_MAX_ATTEMPTS": "5",
+    "AUTH_LOCKOUT_MINUTES": "15",
+  },
+
   // Shared with apps/admin: create once, then copy the ids into both. They must match —
-  // database_id also keys the shared local sqlite file.
+  // database_id also keys the shared local sqlite file. KV is per app: it only holds this
+  // app's auth lockout counters.
   "d1_databases": [
     {
       "binding": "DB",
@@ -27,9 +35,20 @@
       "bucket_name": "replace-with-bucket-name",
     },
   ],
+  "kv_namespaces": [
+    {
+      "binding": "KV",
+      "id": "replace-with-kv-namespace-id",
+    },
+  ],
 
   "env": {
     "staging": {
+      "vars": {
+        "SESSION_TTL_DAYS": "30",
+        "AUTH_LOCKOUT_MAX_ATTEMPTS": "5",
+        "AUTH_LOCKOUT_MINUTES": "15",
+      },
       "d1_databases": [
         {
           "binding": "DB",
@@ -38,8 +57,14 @@
         },
       ],
       "r2_buckets": [{ "binding": "BUCKET", "bucket_name": "replace-with-bucket-name-staging" }],
+      "kv_namespaces": [{ "binding": "KV", "id": "replace-with-kv-namespace-id-staging" }],
     },
     "production": {
+      "vars": {
+        "SESSION_TTL_DAYS": "30",
+        "AUTH_LOCKOUT_MAX_ATTEMPTS": "5",
+        "AUTH_LOCKOUT_MINUTES": "15",
+      },
       "d1_databases": [
         {
           "binding": "DB",
@@ -48,6 +73,7 @@
         },
       ],
       "r2_buckets": [{ "binding": "BUCKET", "bucket_name": "replace-with-bucket-name-production" }],
+      "kv_namespaces": [{ "binding": "KV", "id": "replace-with-kv-namespace-id-production" }],
     },
   },
 }

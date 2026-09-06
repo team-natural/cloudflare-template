@@ -11,14 +11,18 @@
   },
   "scripts": {
     "db:generate": "drizzle-kit generate",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.0"
   },
   "devDependencies": {
+    "@cloudflare/vitest-plugin": "^1.1.4",
     "@cloudflare/workers-types": "^5.0.0",
     "drizzle-kit": "^0.31.0",
-    "typescript": "^5.7.0"
+    "typescript": "^5.7.0",
+    "vitest": "^4.1.11"
   }
 }

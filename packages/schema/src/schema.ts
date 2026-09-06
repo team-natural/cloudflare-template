@@ -1,11 +1,10 @@
 import { sql } from "drizzle-orm";
 import { index, integer, primaryKey, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
-// Generated from docs/3-development/07-database-schema.md (DEV-07) — that document is the
-// source of truth. Do not hand-edit table/column shapes here; update DEV-07 first, then
-// regenerate (`pnpm db:generate`). Only the standard, always-present tables (DEV-07 §3-1
-// through §3-3) are defined below — optional tables (members, orders, ai_jobs, etc.) are
-// adoption-gated per project and get added here only once a project actually adopts them.
+// Standard tables only. Anything a project may or may not adopt (orders, ai_jobs, …) is added
+// here when it adopts it. `members` is the exception: most projects need a public-side login,
+// and adding one later costs design work while removing one is a deletion — so it ships, and
+// projects that do not need it drop it before their first `pnpm db:generate`.
 
 const createdAt = () =>
   text("created_at")
@@ -56,6 +55,38 @@ export const passwordResetTokens = sqliteTable(
     createdAt: createdAt(),
   },
   (table) => [uniqueIndex("uq_password_reset_tokens_token").on(table.token), index("idx_password_reset_tokens_admin_user_id").on(table.adminUserId), index("idx_password_reset_tokens_expires_at").on(table.expiresAt)],
+);
+
+// Public-side login. Deliberately not sharing admin_users/admin_sessions: an AdminUser token
+// must never authenticate on the public site, and the two have different threat models.
+export const members = sqliteTable(
+  "members",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    publicId: text("public_id").notNull(),
+    name: text("name").notNull(),
+    email: text("email").notNull(),
+    passwordHash: text("password_hash").notNull(),
+    status: text("status", { enum: ["active", "inactive"] }).notNull(),
+    lastLoginAt: text("last_login_at"),
+    createdAt: createdAt(),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (table) => [uniqueIndex("uq_members_public_id").on(table.publicId), uniqueIndex("uq_members_email").on(table.email), index("idx_members_status").on(table.status)],
+);
+
+export const memberSessions = sqliteTable(
+  "member_sessions",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    memberId: integer("member_id")
+      .notNull()
+      .references(() => members.id),
+    sessionToken: text("session_token").notNull(),
+    expiresAt: text("expires_at").notNull(),
+    createdAt: createdAt(),
+  },
+  (table) => [uniqueIndex("uq_member_sessions_session_token").on(table.sessionToken), index("idx_member_sessions_member_id").on(table.memberId), index("idx_member_sessions_expires_at").on(table.expiresAt)],
 );
 
 export const categories = sqliteTable(

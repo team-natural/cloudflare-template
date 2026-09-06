@@ -33,5 +33,5 @@ export default function globalSetup() {
   const email = E2E_ADMIN.email.replaceAll("'", "''");
   run("npx", ["wrangler", "d1", "execute", "DB", "--local", ...persist, "--command", `DELETE FROM admin_sessions WHERE admin_user_id IN (SELECT id FROM admin_users WHERE email = '${email}'); DELETE FROM admin_users WHERE email = '${email}';`]);
 
-  run("pnpm", ["seed:admin", "--", `--email=${E2E_ADMIN.email}`, `--password=${E2E_ADMIN.password}`, `--name=${E2E_ADMIN.name}`]);
+  run("pnpm", ["seed", "--", "--table=admin_users", `--email=${E2E_ADMIN.email}`, `--password=${E2E_ADMIN.password}`, `--name=${E2E_ADMIN.name}`]);
 }

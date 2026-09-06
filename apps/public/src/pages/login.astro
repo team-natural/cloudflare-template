@@ -1,0 +1,18 @@
+---
+// Not `/` like apps/admin: there the whole site is behind auth, here `/` is the public top page.
+import Layout from "../layouts/Layout.astro";
+import LoginForm from "../lib/components/login-form.svelte";
+import { getSession } from "$lib/server/auth/session";
+import { createDb } from "@app/schema/client";
+import { env } from "cloudflare:workers";
+
+const session = await getSession(Astro.cookies, createDb(env.DB));
+if (session) return Astro.redirect("/mypage", 302);
+---
+
+<Layout title="Login">
+  <main class="mx-auto flex min-h-dvh max-w-sm flex-col items-center justify-center gap-6 px-4">
+    <h1 class="text-2xl font-bold">Login</h1>
+    <LoginForm client:load />
+  </main>
+</Layout>

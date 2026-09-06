@@ -9,10 +9,17 @@
     "./auth": "./src/auth/index.ts"
   },
   "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
+    "@cloudflare/vitest-plugin": "^1.1.4",
     "@cloudflare/workers-types": "^5.0.0",
-    "typescript": "^5.7.0"
+    "typescript": "^5.7.0",
+    "vitest": "^4.1.11"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.45.2"
   }
 }

@@ -12,11 +12,11 @@
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
-    "check": "pnpm format:check && pnpm lint && turbo run typecheck",
+    "check": "pnpm format:check && pnpm lint && turbo run typecheck && turbo run test",
     "typecheck": "turbo run typecheck",
     "lint": "eslint .",
     "test": "turbo run test",
-    "test:e2e": "turbo run test:e2e",
+    "test:e2e": "turbo run test:e2e --concurrency=1",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "db:generate": "turbo run db:generate --filter=@app/schema",

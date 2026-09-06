@@ -4,16 +4,6 @@ export function jsonItem(data: unknown, status = 200): Response {
   return Response.json({ data }, { status });
 }
 
-// Cursor-based collection envelope, for lists expected to grow large (keyset pagination,
-// not offset-based). Add a page-based counterpart alongside this if a small, bounded list
-// ever needs page numbers instead.
-export function jsonCursorCollection(data: unknown[], meta: { perPage: number; nextCursor: string | null }): Response {
-  return Response.json({
-    data,
-    meta: { per_page: meta.perPage, next_cursor: meta.nextCursor },
-  });
-}
-
 export function toErrorResponse(error: unknown): Response {
   if (error instanceof ValidationError) {
     return Response.json({ message: error.message, errors: error.errors, error_code: error.code }, { status: error.status });
