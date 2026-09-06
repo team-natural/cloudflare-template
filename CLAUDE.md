@@ -148,6 +148,15 @@ Configured in `.mcp.json`, enabled in `.claude/settings.json`.
   Chrome, which is not installed. `--output-dir` only applies when no filename is given, so asking
   for a named screenshot writes it to the repo root.
 
+## Skills
+
+`.claude/skills/shadcn-svelte/` is vendored verbatim from `huntabyte/shadcn-svelte`
+(`skills/shadcn-svelte/`). Never hand-edit it — refresh by replacing the directory. The rest are
+this team's own.
+
+`shadcn-svelte` components are added with `npx shadcn-svelte add <component>` from inside
+`apps/admin`. The CLI writes tab-indented files, so run `pnpm format` afterwards.
+
 ## Comments
 
 Write comments only where the code cannot say it: a non-obvious decision, a constraint discovered
