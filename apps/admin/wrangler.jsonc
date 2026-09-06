@@ -12,6 +12,13 @@
     "enabled": true,
   },
 
+  // vars is non-inheritable, so it's repeated in each env block below.
+  "vars": {
+    "SESSION_TTL_DAYS": "30",
+    "AUTH_LOCKOUT_MAX_ATTEMPTS": "5",
+    "AUTH_LOCKOUT_MINUTES": "15",
+  },
+
   // Shared with apps/public — create once (wrangler d1 create / wrangler r2 bucket create)
   // from either app and copy the generated ids into both. KV is admin-only.
   // migrations_dir is non-inheritable, so it's repeated in each env block below.
@@ -38,6 +45,11 @@
 
   "env": {
     "staging": {
+      "vars": {
+        "SESSION_TTL_DAYS": "30",
+        "AUTH_LOCKOUT_MAX_ATTEMPTS": "5",
+        "AUTH_LOCKOUT_MINUTES": "15",
+      },
       "d1_databases": [
         {
           "binding": "DB",
@@ -50,6 +62,11 @@
       "kv_namespaces": [{ "binding": "KV", "id": "replace-with-kv-namespace-id-staging" }],
     },
     "production": {
+      "vars": {
+        "SESSION_TTL_DAYS": "30",
+        "AUTH_LOCKOUT_MAX_ATTEMPTS": "5",
+        "AUTH_LOCKOUT_MINUTES": "15",
+      },
       "d1_databases": [
         {
           "binding": "DB",
