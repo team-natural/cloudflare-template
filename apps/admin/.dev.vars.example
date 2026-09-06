@@ -1,0 +1,4 @@
+# Local secrets for `astro dev`. Copy to `.dev.vars` (gitignored) and fill in.
+# Non-secret config goes in wrangler.jsonc `vars`; in staging/production these keys become
+# Workers Secrets (`wrangler secret put`).
+# Nothing is required by the code that ships today — add keys as the features land.

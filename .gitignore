@@ -32,8 +32,10 @@ worker-configuration.d.ts
 
 # --- Secrets / local env ---
 .dev.vars
+.dev.vars.*
 .env
 .env.*
+!.dev.vars.example
 !.devcontainer/.env
 
 # --- Claude Code ---
