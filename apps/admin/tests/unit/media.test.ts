@@ -13,7 +13,13 @@ import { updateMediaSchema } from "../../src/lib/server/validation/media";
 const db = createDb(env.DB);
 let session: Session;
 
-const png = (name = "a.png", bytes = 4) => new File([new Uint8Array(bytes)], name, { type: "image/png" });
+// Real leading bytes, not zeroes: the upload path checks them, so a placeholder would test
+// nothing. PNG signature per the spec's 8-byte header.
+const PNG_HEADER = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+
+function png(name = "a.png", extraBytes = 0) {
+  return new File([new Uint8Array([...PNG_HEADER, ...new Array(extraBytes).fill(0)])], name, { type: "image/png" });
+}
 
 beforeEach(async () => {
   await db.delete(activityLog);
@@ -38,13 +44,32 @@ describe("uploadMedia", () => {
     expect(uploaded).not.toHaveProperty("uploaderId");
     await expect(env.BUCKET.head(uploaded.key)).resolves.not.toBeNull();
     const [row] = await db.select().from(media);
-    expect(row).toMatchObject({ uploaderId: session.adminUserId, mimeType: "image/png", sizeBytes: 4 });
+    expect(row).toMatchObject({ uploaderId: session.adminUserId, mimeType: "image/png", sizeBytes: PNG_HEADER.length });
   });
 
   it("generates the object key instead of trusting the filename", async () => {
     // A caller-supplied name could overwrite another object or escape the prefix.
-    const uploaded = await uploadMedia(db, env.BUCKET, png("../../etc/passwd"), session);
+    const uploaded = await uploadMedia(db, env.BUCKET, png("../../etc/passwd.png"), session);
     expect(uploaded.key).toMatch(/^media\/[0-9A-HJKMNP-TV-Z]{26}$/);
+  });
+
+  it("rejects an extension that disagrees with the declared type", async () => {
+    await expect(uploadMedia(db, env.BUCKET, png("payload.svg"), session)).rejects.toBeInstanceOf(ValidationError);
+  });
+
+  it("rejects content that disagrees with the declared type", async () => {
+    // The type and the name are both caller-supplied; only the bytes are not.
+    const disguised = new File([new TextEncoder().encode("<script>alert(1)</script>")], "a.png", { type: "image/png" });
+    await expect(uploadMedia(db, env.BUCKET, disguised, session)).rejects.toBeInstanceOf(ValidationError);
+
+    expect(await db.select().from(media)).toHaveLength(0);
+    expect((await env.BUCKET.list()).objects).toHaveLength(0);
+  });
+
+  it("does not accept SVG by default", async () => {
+    // XML has no signature to verify, and SVG can carry script.
+    const svg = new File(['<svg xmlns="http://www.w3.org/2000/svg"/>'], "a.svg", { type: "image/svg+xml" });
+    await expect(uploadMedia(db, env.BUCKET, svg, session)).rejects.toBeInstanceOf(ValidationError);
   });
 
   it("refuses a type outside the allowlist, and writes nothing", async () => {
@@ -56,8 +81,9 @@ describe("uploadMedia", () => {
   });
 
   it("refuses an empty or oversized file", async () => {
-    await expect(uploadMedia(db, env.BUCKET, png("empty.png", 0), session)).rejects.toBeInstanceOf(ValidationError);
-    await expect(uploadMedia(db, env.BUCKET, png("big.png", 10 * 1024 * 1024 + 1), session)).rejects.toBeInstanceOf(ValidationError);
+    const empty = new File([], "empty.png", { type: "image/png" });
+    await expect(uploadMedia(db, env.BUCKET, empty, session)).rejects.toBeInstanceOf(ValidationError);
+    await expect(uploadMedia(db, env.BUCKET, png("big.png", 10 * 1024 * 1024), session)).rejects.toBeInstanceOf(ValidationError);
   });
 });
 

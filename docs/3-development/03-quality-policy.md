@@ -44,13 +44,14 @@ related-docs:
 
 - [ ] 要件（PRD-03 機能 ID）に対応する受け入れ条件を満たす
 - [ ] テストが追加 / 更新されている（正常系・バリデーション異常系・権限異常系。Vitest — DEV-01 §1）
-- [ ] 型チェック（`pnpm typecheck` = 各アプリで `wrangler types` → `astro check` → `svelte-check`）でエラー 0 件（DEV-01 §1「型チェック」参照。`tsc` 単体では `.astro`/`.svelte` を解析できない）
+- [ ] 型チェック（`pnpm typecheck` = 各アプリで `wrangler types` → `astro check`）でエラー 0 件（DEV-01 §1「型チェック」参照。`tsc` 単体では `.astro`/`.svelte` を解析できない）
 - [ ] Prettier + ESLint（`pnpm check`。レイヤー境界ルール `eslint-plugin-boundaries` 含む — §3-3）で整形・Lint 済み
 - [ ] 関連 Service（`apps/admin/src/lib/server/services/`）/ D1 アクセス関数の Unit テスト（Vitest）がある
 - [ ] ロール権限（`admin` / `editor`）のテストが含まれる
 - [ ] AI 機能を含む場合、LLM 呼び出しのモックテストがある（`ctx.waitUntil()` で非同期化する場合はその起動のモックも — DEV-01 §4）
 - [ ] ログ出力（request_id / admin_user_id）が適切
 - [ ] セキュリティ観点（DEV-02 §11）の自己確認完了
+- [ ] コメントが CLAUDE.md「Comments」の基準を満たす（**そのコメントが防ぐ具体的なミスを言えるか**。言えなければ削除。理由の説明はコミットメッセージか docs へ）
 - [ ] DEV ドキュメントへの影響があれば更新済み
 
 ---
@@ -61,16 +62,20 @@ related-docs:
 
 | 種別 | 目的 | 対象 | ツール | カバレッジ目標 | タイミング |
 | --- | --- | --- | --- | --- | --- |
-| Unit Test | 業務ロジック検証 | Service（`apps/admin/src/lib/server/services/`）/ D1 アクセス関数 / 状態遷移関数 | Vitest + `@cloudflare/vitest-pool-workers`（DEV-01 §1） | 主要 Service 80% 以上 | PR 時 |
-| Feature / Integration Test | エンドポイント動作 | Astro API Route（`apps/admin/src/pages/api/**/*.ts`）/ Svelte アイランド | Vitest（同上） | 主要画面・API 100% | PR 時 |
+| Unit Test | 業務ロジック検証 | Service（`apps/*/src/lib/server/services/`）/ 状態遷移関数 / `packages/*` の共有基盤 | Vitest + `@cloudflare/vitest-plugin`（**workerd 上で実行**。DEV-01 §1） | E2E で到達できない条件を必ず含める（下記） | PR 時 |
+| Feature / Integration Test | エンドポイント動作 | Astro API Route（`apps/*/src/pages/api/**/*.ts`） | Vitest（同上）または Playwright の `request` | 認証が必要なルートは全て（下記） | PR 時 |
 | Architecture Test | レイヤー境界遵守（DEV-01 §4/§5） | Astro Page/API Route → Service → D1 の依存方向 | `eslint-plugin-boundaries`（確定済み。詳細は §3-3） | — | PR 時（Lint 自動） |
 | Integration Test | 外部 API 連携 | Stripe / LLM（Vercel AI SDK）/ R2 / CI | Vitest + モック（DEV-10 §9 のモック方針参照） | 主要連携 100% | PR 時 |
-| E2E Test（**任意**：プロジェクト成長後に導入） | 主要フロー | 記事公開・お問い合わせ送信・軽量 EC 決済（採用時） | Playwright（確定済み。`playwright` MCP は design-review 用、テストランナーとしても同ツールに確定） | 主要フロー（導入時に設定） | リリース前（導入後） |
-| Static Analysis | 型安全性 | 全 `.ts` / `.astro` / `.svelte` コード | ESLint + TypeScript strict（`astro/tsconfigs/strict`）。`pnpm typecheck`（各アプリで `wrangler types` → `astro check` → `svelte-check`） | エラー 0 件 | PR 時 |
-| Style Check | コードスタイル | 全コード | Prettier + ESLint（`pnpm check`） | 100% Pass | PR 時（Hook 自動 — `.claude/hooks/format-and-check.sh`） |
+| E2E Test（**導入済み**・CI で実行） | 主要フロー | 管理画面ログイン / Member 認証 / お問い合わせ送信 / Content Collections の記事表示 | Playwright（`playwright` MCP は design-review 用、テストランナーとしても同ツール） | ハイドレーション（`client:*` 忘れ）は E2E でしか捕まらない | PR 時 |
+| Static Analysis | 型安全性 | 全 `.ts` / `.astro` / `.svelte` コード | ESLint + TypeScript strict（`astro/tsconfigs/strict`）。`pnpm typecheck`（各アプリで `wrangler types` → `astro check`） | エラー 0 件 | PR 時 |
+| Style Check | コードスタイル | 全コード | Prettier + ESLint。`pnpm check` は format:check + lint + typecheck + **単体テスト**をまとめて実行する | 100% Pass | PR 時（Hook 自動 — `.claude/hooks/format-and-check.sh`） |
 | Security Test | 脆弱性検知 | 依存関係 / コード | Dependabot / `/security-review` | High 以上 0 件 | 自動検知 / リリース前 |
 
-> テストフレームワークは Vitest（unit / feature）+ Playwright（e2e）で導入済み（DEV-01 §1。`tests/unit/` にマイグレーション適用済み D1 に対する参照テストあり — `tests/apply-migrations.ts`）。カバレッジ目標は実測を前提とした目標値であり、E2E Test は必須の DoD（§2）には含めない。
+> **単体テストと E2E は役割が違う。** 単体テストは workerd 上で動くため D1 も KV も本物で、E2E から到達できない条件を担当する：設定値が未設定（`NaN`）のときのフェイルクローズ、セッションの期限切れ、停止済みアカウントの即時失効、未知のメールとパスワード誤りの処理時間が桁で違わないこと。ロックアウトが無効化されていても E2E は全件通るため、ここは単体でしか守れない。逆にハイドレーション（`client:*` の書き忘れ）はサーバー側で描画されてしまうため E2E でしか捕まらない。
+>
+> D1 を使うテストは `tests/setup.ts` がマイグレーションを適用する。`packages/schema/migrations/` は同梱しないので、`pnpm db:generate` を先に実行する必要がある。
+>
+> カバレッジ計測ツールは未導入のため、数値目標は置かない。代わりに「何を必ず検証するか」を上表で定める。
 
 ### 3-2. AI 機能のテスト戦略（採用時）
 
@@ -138,24 +143,24 @@ AI による自動レビュー（実装規約の正本: `CLAUDE.md`、DEV-01 §9
 
 ## 6. テスト実行コマンド
 
-テストツールは Vitest（unit/feature）+ Playwright（e2e）で導入済み（DEV-01 §1）。
+テストツールは Vitest（単体）+ Playwright（E2E）で導入済み（DEV-01 §1）。
 
 ```bash
-# 全テスト（両アプリ、例）
+# 単体テスト（全パッケージ）。migrations/ が未生成なら先に pnpm db:generate
 pnpm test
 
-# 特定アプリのみ（例）
+# 特定パッケージのみ
 pnpm --filter admin test
 
-# 特定テスト（例）
-pnpm --filter admin exec vitest run postService
+# 特定テストのみ
+pnpm --filter admin exec vitest run inquiries
 
-# カバレッジ付き（例）
-pnpm --filter admin exec vitest run --coverage
-
-# E2E テスト（Playwright 導入後の例）
-npx playwright test
+# E2E（両アプリ。--concurrency=1 で直列実行される）
+pnpm test:e2e
 ```
+
+> `@cloudflare/vitest-plugin` の peer は `vitest ^4.1.0`。vitest 5 を入れると miniflare が
+> 素の `SyntaxError` で起動しなくなるため、バージョンを固定している（DEV-01 §1）。
 
 ---
 

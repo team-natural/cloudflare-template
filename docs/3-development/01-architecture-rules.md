@@ -48,10 +48,10 @@ related-docs:
 | ファイルストレージ | Cloudflare R2 | バインディング名は必ず `BUCKET` |
 | Cache / Queue | Cloudflare KV 採用・Queues 不採用（`Confirmed`） | KV は認証エンドポイントの失敗回数カウンタ（DEV-02 §7）とメンテナンスモードフラグ（OPS-02 §3-3/§3-5)用。Queues はコンテンツ主体サイトには過剰なため不採用（§3）— 必要が生じたら新規 GOV-01 決定で追加。Session は本書 §2「API 提供（認証）」で決定済み（D1 ベース） |
 | Mail | Resend（`resend` npm パッケージ、fetch ベースの公式 SDK） | プロジェクト開始時に導入。Node 専用 SDK は Workers で動かないことがあるため、fetch ベースで動作するものを選ぶ |
-| Testing | Vitest + Playwright（`Confirmed`・導入済み） | Unit / Feature = Vitest（Workers 実行環境は `@cloudflare/vitest-plugin` で再現。旧称 `@cloudflare/vitest-pool-workers` から改名済み）、E2E = Playwright（両アプリに `playwright.config.ts`。spec のサンプルは未同梱）。`pnpm test` / `pnpm test:e2e`。Architecture テスト（レイヤー境界）は下記 Static Analysis（`eslint-plugin-boundaries`）が担う。テスト戦略の詳細は DEV-03 §4 |
+| Testing | Vitest + Playwright（`Confirmed`・導入済み） | Unit / Feature = Vitest（Workers 実行環境は `@cloudflare/vitest-plugin` で再現。旧称 `@cloudflare/vitest-pool-workers` から改名済み）、E2E = Playwright（両アプリに `playwright.config.ts` と spec を同梱。CI で実行）。`pnpm test` / `pnpm test:e2e`。**vitest は `^4.1.0` に固定**する — プラグインの peer がそれであり、5 系を入れると miniflare が素の `SyntaxError` で起動しなくなる。Architecture テスト（レイヤー境界）は下記 Static Analysis（`eslint-plugin-boundaries`）が担う。テスト戦略の詳細は DEV-03 §4 |
 | Formatter | Prettier | `prettier-plugin-astro` / `prettier-plugin-svelte` / `prettier-plugin-tailwindcss`（Tailwind クラス順の自動統一）。`printWidth: 9999`（自動折り返しなし） |
 | Lint | ESLint（flat config） | `eslint-plugin-astro` / `eslint-plugin-svelte` / `typescript-eslint` |
-| 型チェック | `wrangler types` → `astro check` → `svelte-check` | `pnpm typecheck` として一括実行（Turborepo が両アプリに fan out）。`tsc --noEmit` 単体では `.astro` / `.svelte` を解析できないため必須 |
+| 型チェック | `wrangler types` → `astro check` | `pnpm typecheck` として一括実行（Turborepo が両アプリに fan out）。`tsc --noEmit` 単体では `.astro` / `.svelte` を解析できないため必須 |
 | Static Analysis | ESLint + TypeScript strict（`astro/tsconfigs/strict`）+ `eslint-plugin-boundaries`（`Confirmed`） | `eslint-plugin-boundaries` で §5 のレイヤー境界（ページ/API ルートから `db/` 直接 import 禁止等）を機械検証する。ルール定義は ESLint flat config に置く（DEV-03 §5 参照） |
 | 言語方針 | 日本語のみ・i18n 機構なし（`Confirmed`） | テンプレート標準は日本語単一言語。i18n ライブラリ・URL 言語プレフィックスは持たず、UI 文字列は日本語ハードコードを許容する。多言語対応が必要な案件は GOV-02 起票の上、Astro の i18n ルーティング等の導入を案件側 GOV-01 で決定する |
 | Permission | 自前実装（専用ライブラリなし） | spatie/laravel-permission 相当の npm パッケージは不採用。AdminUser は単一運営・少数ロール（`admin` / `editor`）が前提（DEV-02 / PRD-01 §1-2 参照）。Member（マイページ機能採用時のみ、PRD-01 §1-1・§1-2）はロール階層を持たない単一種別 |

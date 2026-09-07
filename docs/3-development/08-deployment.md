@@ -76,13 +76,20 @@ CD を GitHub Actions に置かないのは、Workers Builds が GitHub 連携�
 
 ### 3-1. PR 時（CI — 導入済み）
 
-`dev` 宛の PR と `dev` への push で `.github/workflows/ci.yml` が動く。
+`main` / `dev` への push と、すべての PR で `.github/workflows/ci.yml` が動く。
 
 ```
-1. pnpm install --frozen-lockfile
-2. pnpm check（format:check + lint + typecheck + test を Turborepo が両アプリ + packages に fan out）
-3. pnpm build（両 Worker のビルド成否）
+1. pnpm/setup（Node + pnpm + 依存インストール。require-lockfile で lockfile 必須）
+2. pnpm db:generate      ← check より前。migrations/ は同梱しないため、
+                            check 内の単体テストも e2e もこれ無しでは動かない
+3. pnpm check（format:check + lint + typecheck + 単体テストを Turborepo が fan out）
+4. playwright install chromium（キャッシュあり）
+5. pnpm test:e2e（--concurrency=1。両スイートが同じローカル D1 を使うため）
+6. pnpm build（両 Worker のビルド成否）
+7. 失敗時のみ test-results/ をアーティファクト化（trace: on-first-retry の回収）
 ```
+
+> `corepack enable` ではなく `pnpm/setup` を使う。corepack は pnpm のダウンロード前に確認プロンプトを出し、ランナーには応答する手段がない。
 
 すべて Pass で Merge 可能とする。編集ごとの hooks（`.claude/hooks/format-and-check.sh`）は Claude Code のセッション内でしか動かないため、CI がチーム全体に対する唯一の強制力となる。
 

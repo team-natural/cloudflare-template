@@ -201,8 +201,8 @@ function requireRole(session: Session, role: "admin" | "editor") {
 | CSRF | Astro 組み込みの Origin チェック（`security.checkOrigin`、既定で有効。DEV-01 §2 で決定済み）で対応する。GET/HEAD/OPTIONS 以外かつ `Content-Type` が form 系または未指定のリクエストは Origin 不一致で自動的に 403 になる。追加ライブラリ・二重送信トークン等の自前実装は不要。API クライアントから呼ぶ場合は `Content-Type: application/json` を明示すること（未指定だと同一オリジンでない限り拒否される）。AdminUser・Member（採用時）はこの機構を共有してよい（アプリケーションではなく Astro 自体の機構のため、DEV-02 §1-2 の実装分離ルールの対象外） |
 | XSS | Astro は `{式}` 展開でデフォルトエスケープ、Svelte も `{式}` 展開でデフォルトエスケープ。生 HTML を挿入する Astro の `set:html` ディレクティブ／Svelte の `{@html ...}` はサニタイズ済みの値以外に使用禁止（Blade の `{!! !!}` に相当） |
 | SQL Injection | D1 へのアクセスは必ずプレースホルダ付きプリペアドステートメント（`env.DB.prepare(sql).bind(...)`）を使用。文字列連結による SQL 構築を禁止（DEV-01 §3） |
-| ファイルアップロード | MIME / 拡張子 / サイズ / 実バイトの 4 重チェック（保存先 R2） |
-| マスアサインメント | ORM が無いため Eloquent 相当の防御機構も無い。Service 層で書き込み対象のフィールドを明示的にホワイトリスト指定する（リクエストボディを丸ごと D1 の INSERT/UPDATE に渡さない） |
+| ファイルアップロード | 宣言 MIME・拡張子・サイズ・**先頭バイトの署名**を検証する（`apps/admin/src/lib/server/services/media.ts`）。型も名前も呼び出し側が決められるため、署名の照合だけが「実行可能ファイルが `image/png` として届く」経路を塞ぐ。`image/svg+xml` は既定で不許可 — XML には署名が無く、スクリプトを埋め込めるため。採用する場合はアップロード時のサニタイズか、添付として配信する運用とセットにする。保存先は R2、キーはサーバー生成（DEV-10 §4-2） |
+| マスアサインメント | Drizzle スキーマから `drizzle-zod` で導出した Zod スキーマを `.pick()` で書き込み可能列だけに絞る（`validation/*.ts`）。`status` や `public_id` のようなサーバー所有の列はリクエストボディに現れても落ちる（単体テストで検証済み）。Service 層で書き込み対象のフィールドを明示的にホワイトリスト指定する（リクエストボディを丸ごと D1 の INSERT/UPDATE に渡さない） |
 
 ---
 

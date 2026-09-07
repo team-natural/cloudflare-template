@@ -1,7 +1,5 @@
-// Media rows index objects in R2: the row holds the metadata, the bucket holds the bytes. There
-// is no transaction across the two, so both writers order their steps to keep the same invariant
-// — a row must never point at an object that is not there. An orphaned object is recoverable; a
-// broken reference is what a screen renders.
+// D1 and R2 share no transaction, so every write is ordered to keep one invariant: a row must
+// never point at bytes that are not there. Object first on create, row first on delete.
 import { media } from "@app/schema";
 import type { DbClient } from "@app/schema/client";
 import { ulid } from "@app/schema/ulid";
@@ -11,15 +9,25 @@ import type { Session } from "../auth/session";
 import type { UpdateMediaInput } from "../validation/media";
 import { activityLogInsert } from "./activity-log";
 
-// An allowlist, not a denylist: the set a project actually serves is small and knowable, and
-// anything outside it is a upload nobody asked for. Widen it deliberately.
-const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp", "image/avif", "image/svg+xml", "application/pdf"];
+// `image/svg+xml` is absent on purpose: XML has no signature to check, and SVG can carry script.
+// Add it only alongside sanitising or serving as an attachment.
+const ALLOWED_UPLOADS = [
+  { mimeType: "image/jpeg", extensions: [".jpg", ".jpeg"], signature: [0xff, 0xd8, 0xff] },
+  { mimeType: "image/png", extensions: [".png"], signature: [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a] },
+  { mimeType: "image/webp", extensions: [".webp"], signature: [0x52, 0x49, 0x46, 0x46], signatureAt8: [0x57, 0x45, 0x42, 0x50] },
+  { mimeType: "image/avif", extensions: [".avif"], signatureAt4: [0x66, 0x74, 0x79, 0x70, 0x61, 0x76, 0x69, 0x66] },
+  { mimeType: "application/pdf", extensions: [".pdf"], signature: [0x25, 0x50, 0x44, 0x46, 0x2d] },
+] as const;
+
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+
+function matchesAt(bytes: Uint8Array, offset: number, signature: readonly number[]): boolean {
+  return signature.every((byte, i) => bytes[offset + i] === byte);
+}
 
 type MediaRow = typeof media.$inferSelect;
 
-// `key` is deliberately included: a screen needs it to build the object's URL. `uploaderId` is
-// not — it is another table's row id.
+// `key` is included so a screen can build the object's URL; `uploaderId` is another table's id.
 export function toPublicMedia(row: MediaRow) {
   return {
     id: row.publicId,
@@ -35,7 +43,6 @@ export function toPublicMedia(row: MediaRow) {
 const DEFAULT_PER_PAGE = 20;
 const MAX_PER_PAGE = 100;
 
-// Newest first, like the inquiry inbox — a media library is browsed from the most recent upload.
 export async function listMedia(db: DbClient, options: { beforeId?: number | null; perPage?: number }) {
   const perPage = Math.min(Math.max(options.perPage ?? DEFAULT_PER_PAGE, 1), MAX_PER_PAGE);
   const rows = await db
@@ -60,20 +67,33 @@ export async function getMediaByPublicId(db: DbClient, publicId: string) {
   return toPublicMedia(await findMediaRow(db, publicId));
 }
 
-// The object key is generated, never taken from the upload: a client-supplied name would let a
-// caller overwrite someone else's object or write outside the intended prefix.
+// The key is generated, never taken from the upload: a caller-supplied name could overwrite
+// another object or escape the prefix.
 export async function uploadMedia(db: DbClient, bucket: R2Bucket, file: File, session: Session) {
-  if (!ALLOWED_MIME_TYPES.includes(file.type)) {
-    throw new ValidationError({ file: [`許可されていない形式です（${ALLOWED_MIME_TYPES.join(", ")}）。`] });
+  const allowed = ALLOWED_UPLOADS.find((entry) => entry.mimeType === file.type);
+  if (!allowed) {
+    throw new ValidationError({ file: [`許可されていない形式です（${ALLOWED_UPLOADS.map((entry) => entry.mimeType).join(", ")}）。`] });
   }
+
+  const extension = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
+  if (!(allowed.extensions as readonly string[]).includes(extension)) {
+    throw new ValidationError({ file: [`拡張子が形式と一致しません（${allowed.extensions.join(", ")}）。`] });
+  }
+
   if (file.size === 0 || file.size > MAX_UPLOAD_BYTES) {
     throw new ValidationError({ file: [`ファイルサイズは 1 バイト以上 ${MAX_UPLOAD_BYTES} バイト以下にしてください。`] });
   }
 
+  // Type and name are caller-supplied; only the bytes are not.
+  const header = new Uint8Array(await file.slice(0, 16).arrayBuffer());
+  const signatureMatches = ("signature" in allowed ? matchesAt(header, 0, allowed.signature) : true) && ("signatureAt4" in allowed ? matchesAt(header, 4, allowed.signatureAt4) : true) && ("signatureAt8" in allowed ? matchesAt(header, 8, allowed.signatureAt8) : true);
+  if (!signatureMatches) {
+    throw new ValidationError({ file: ["ファイルの内容が形式と一致しません。"] });
+  }
+
   const publicId = ulid();
   const key = `media/${publicId}`;
-  // Bucket first: if the row write fails the object is orphaned, which is recoverable. The other
-  // order leaves a row whose object never arrived.
+  // Bucket first (see the note at the top of this file).
   await bucket.put(key, file.stream(), { httpMetadata: { contentType: file.type } });
 
   const now = new Date().toISOString();
@@ -94,8 +114,7 @@ export async function updateMedia(db: DbClient, publicId: string, input: UpdateM
 export async function deleteMedia(db: DbClient, bucket: R2Bucket, publicId: string, session: Session): Promise<void> {
   const row = await findMediaRow(db, publicId);
 
-  // Row first, for the same reason as above. The audit entry carries the key so an object left
-  // behind by a failed bucket delete can still be found.
+  // The entry carries the key, so an object left behind by a failed bucket delete is findable.
   await db.batch([
     db.delete(media).where(eq(media.id, row.id)),
     activityLogInsert(db, {

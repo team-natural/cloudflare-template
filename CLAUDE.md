@@ -165,7 +165,22 @@ this team's own.
 
 ## Comments
 
-Write comments only where the code cannot say it: a non-obvious decision, a constraint discovered
-by debugging, a security property that reads as removable. Do not restate what the code does, and
-do not explain what a reader can see. Keep them to one or two lines. If a comment is long, the
-reason usually belongs in a doc, not above the line.
+Write the code first with no comments, then add back only the ones that survive this test:
+
+**Name the specific mistake the comment prevents. If you cannot name one, delete it.**
+
+"A reader might wonder why" is not a mistake. "Someone will reorder these two calls and orphan a
+row" is. Apply it per comment, not per file.
+
+Then:
+
+- **One line.** A second line only to name the consequence. Never a paragraph.
+- **State the constraint, not the reasoning that produced it.** `// Bucket first: a row must never
+  point at missing bytes.` — not the paragraph about which failure mode is recoverable. The
+  reasoning belongs in the commit message, or in `docs/` if it outlives the commit.
+- **Say it once per file.** The second and third place cross-reference the first.
+- **"Not X" only when someone would plausibly write X.** Ruling out an option nobody would reach
+  for is noise.
+
+If comment lines exceed roughly a tenth of a file, that is not a violation but it is a signal —
+read them again with the test above.
