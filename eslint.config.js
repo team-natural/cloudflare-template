@@ -53,7 +53,8 @@ export default tseslint.config(
       "import/resolver": { typescript: true },
       "boundaries/elements": [
         { type: "public-pages", pattern: "apps/public/src/pages" },
-        { type: "public-components", pattern: "apps/public/src/components" },
+        { type: "public-components", pattern: "apps/public/src/lib/components" },
+        { type: "public-server", pattern: "apps/public/src/lib/server/*" },
         { type: "admin-pages", pattern: "apps/admin/src/pages" },
         { type: "admin-components", pattern: "apps/admin/src/lib/components" },
         { type: "admin-server", pattern: "apps/admin/src/lib/server/*" },
@@ -63,10 +64,8 @@ export default tseslint.config(
     rules: {
       // Two independently deployable Workers (apps/public, apps/admin) — neither app may reach
       // into the other's source, and packages/* is shared code that must not depend on either app.
-      // admin-server (auth/services/validation — db/http moved to packages/*) is the one-way
-      // dependency target: pages/API routes and UI components may call into it, never the reverse.
-      // No rule yet forcing pages through the service layer instead of @app/schema directly —
-      // add that once the API routes exist to check it against.
+      // Within an app, `*-server` (auth/services/validation) is the one-way dependency target:
+      // pages and API routes may call into it, never the reverse, and UI components not at all.
       "boundaries/dependencies": [
         "error",
         {
@@ -75,7 +74,7 @@ export default tseslint.config(
             {
               from: {
                 element: {
-                  types: { anyOf: ["public-pages", "public-components"] },
+                  types: { anyOf: ["public-pages", "public-components", "public-server"] },
                 },
               },
               disallow: {
@@ -96,20 +95,20 @@ export default tseslint.config(
               disallow: {
                 to: {
                   element: {
-                    types: { anyOf: ["public-pages", "public-components"] },
+                    types: { anyOf: ["public-pages", "public-components", "public-server"] },
                   },
                 },
               },
               message: "apps/admin must not import from apps/public — share code via packages/* instead",
             },
             {
-              from: { element: { type: "admin-components" } },
-              disallow: { to: { element: { type: "admin-server" } } },
+              from: { element: { types: { anyOf: ["admin-components", "public-components"] } } },
+              disallow: { to: { element: { types: { anyOf: ["admin-server", "public-server"] } } } },
               message: "UI components must not import server layers — delegate via API routes",
             },
             {
-              from: { element: { type: "admin-server" } },
-              disallow: { to: { element: { types: { anyOf: ["admin-pages", "admin-components"] } } } },
+              from: { element: { types: { anyOf: ["admin-server", "public-server"] } } },
+              disallow: { to: { element: { types: { anyOf: ["admin-pages", "admin-components", "public-pages", "public-components"] } } } },
               message: "Server layers must not depend on UI layers — dependencies flow one way",
             },
             {
@@ -117,7 +116,7 @@ export default tseslint.config(
               disallow: {
                 to: {
                   element: {
-                    types: { anyOf: ["public-pages", "public-components", "admin-pages", "admin-components", "admin-server"] },
+                    types: { anyOf: ["public-pages", "public-components", "public-server", "admin-pages", "admin-components", "admin-server"] },
                   },
                 },
               },
@@ -126,6 +125,15 @@ export default tseslint.config(
           ],
         },
       ],
+    },
+  },
+  {
+    // boundaries classifies folders, so the one rule it cannot express: a page or component may
+    // hold a db handle (`@app/schema/client`) and pass it to a service, but importing the tables
+    // means it is about to run a query, and query shapes belong in one layer.
+    files: ["apps/*/src/pages/**", "apps/*/src/lib/components/**"],
+    rules: {
+      "no-restricted-imports": ["error", { paths: [{ name: "@app/schema", message: "Query the database from a service — pages and components only pass a db handle around." }] }],
     },
   },
 );

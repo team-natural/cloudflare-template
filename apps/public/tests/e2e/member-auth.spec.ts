@@ -98,6 +98,21 @@ test.describe("public site", () => {
     expect(headers["referrer-policy"]).toBe("strict-origin-when-cross-origin");
   });
 
+  test("the contact endpoint accepts a post from a visitor with no session", async ({ request, baseURL }) => {
+    // The one unauthenticated write in the template, so here a 401 would be the bug. Astro's
+    // CSRF check still applies, hence the Origin.
+    const headers = { Origin: baseURL! };
+    const created = await request.post("/api/v1/inquiries", {
+      headers,
+      data: { type: "general", name: "Visitor", email: "visitor@example.test", message: "Hello" },
+    });
+    expect(created.status()).toBe(201);
+    expect((await created.json()).data.id).toMatch(/^[0-9A-HJKMNP-TV-Z]{26}$/);
+
+    const invalid = await request.post("/api/v1/inquiries", { headers, data: { name: "V", email: "nope", message: "" } });
+    expect(invalid.status()).toBe(422);
+  });
+
   test("a Content Collections article renders at its own route", async ({ page }) => {
     // getStaticPaths is silently ignored under output: "server" without `prerender = true`,
     // and the failure only shows up on the article route itself.

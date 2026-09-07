@@ -29,9 +29,23 @@ test.describe("login screen", () => {
     expect(headers["referrer-policy"]).toBe("strict-origin-when-cross-origin");
   });
 
-  test("a protected API rejects an unauthenticated request on its own", async ({ request }) => {
-    // There is no auth middleware, so every route guards itself.
+  test("every admin API rejects an unauthenticated request on its own", async ({ request, baseURL }) => {
+    // There is no auth middleware, so a route that forgets requireSession is simply open. Add
+    // new routes here — this is the only place the omission shows up.
     expect((await request.get("/api/v1/auth/me")).status()).toBe(401);
+    expect((await request.get("/api/v1/inquiries")).status()).toBe(401);
+    expect((await request.get("/api/v1/inquiries/anything")).status()).toBe(401);
+
+    // Astro answers a mutating request 403 before the route runs, so these carry an Origin —
+    // without it the assertion would pass on the CSRF check, not the guard.
+    const headers = { Origin: baseURL! };
+    expect((await request.post("/api/v1/inquiries/anything/start", { headers })).status()).toBe(401);
+    expect((await request.delete("/api/v1/inquiries/anything", { headers })).status()).toBe(401);
+  });
+
+  test("a mutating request from another origin is refused", async ({ request }) => {
+    const response = await request.post("/api/v1/auth/logout", { headers: { Origin: "https://attacker.example" } });
+    expect(response.status()).toBe(403);
   });
 });
 
