@@ -170,6 +170,12 @@ this team's own.
 `shadcn-svelte` components are added with `npx shadcn-svelte add <component>` from inside
 `apps/admin`. The CLI writes tab-indented files, so run `pnpm format` afterwards.
 
+## Editing files
+
+Always create/modify files with the `Edit` / `Write` tools, never `Bash` (`sed`, `echo >`,
+heredocs). The PostToolUse hook (`.claude/hooks/format-and-check.sh`) only fires on `Edit`/`Write`
+— bypassing it silently skips Prettier, ESLint, and the typecheck that runs after them.
+
 ## Comments
 
 Write the code first with no comments, then add back only the ones that survive this test:
