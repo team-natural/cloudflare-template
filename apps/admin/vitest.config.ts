@@ -15,6 +15,7 @@ export default defineConfig(async () => ({
         compatibilityFlags: ["nodejs_compat"],
         d1Databases: ["DB"],
         kvNamespaces: ["KV"],
+        r2Buckets: ["BUCKET"],
         bindings: {
           TEST_MIGRATIONS: existsSync(migrationsPath) ? await readD1Migrations(migrationsPath) : [],
           SESSION_TTL_DAYS: "30",

@@ -21,9 +21,10 @@ type Table = (typeof tables)[number];
 const each = (assert: (table: Table) => void) => () => tables.forEach(assert);
 const columnNames = (table: Table) => table.columns.map((column) => column.name);
 
-it("finds every table", () => {
-  // Guards the filter above: a silent zero would make every other test vacuous.
-  expect(tables.length).toBeGreaterThan(10);
+it("finds the tables", () => {
+  // Guards the filter above: if it stopped matching, every other test here would pass vacuously.
+  // Asserted against a table rather than a count, which changes with the project.
+  expect(tables.map((table) => table.name)).toContain("admin_users");
 });
 
 describe("keys", () => {

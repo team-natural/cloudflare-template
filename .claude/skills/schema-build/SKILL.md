@@ -21,8 +21,8 @@ If the user is asking for a new/changed table but DEV-07 doesn't yet reflect it,
 §3 (table list) and the relevant §4/§5/§7 column definition table before touching any code. Follow
 DEV-07 §1's type conventions exactly:
 
-- PK: `INTEGER PRIMARY KEY AUTOINCREMENT` (composite PK is the only documented exception — see
-  `post_tags` in §4-5)
+- PK: `INTEGER PRIMARY KEY AUTOINCREMENT`. A join table with a composite PK and no surrogate id
+  is the only exception
 - Public-facing ID: `public_id TEXT` (ULID), only on tables exposed via URL/API
 - Booleans: `INTEGER` (0/1), never a SQLite `BOOLEAN` alias
 - Timestamps: `TEXT` ISO 8601; `created_at` defaults via `strftime(...)`, `updated_at` is set by
@@ -40,8 +40,8 @@ first argument, `camelCase` TS property names, indexes/unique constraints return
 table's extra-config callback as an array — `(table) => [index(...), uniqueIndex(...)]`.
 
 `schema.ts` already holds DEV-07 §3-1〜§3-3's standard tables (admin_users, admin_sessions,
-password_reset_tokens, members, member_sessions, categories, tags, posts, post_tags, media,
-inquiries, activity_log), so follow their house style rather than inventing one: the shared
+password_reset_tokens, members, member_sessions, media, inquiries, activity_log), so follow
+their house style rather than inventing one: the shared
 `createdAt()` helper for the `strftime(...)` default, `publicId` alongside the internal integer
 primary key, and the extra-config callback form above. Optional tables (orders, ai_jobs …) are
 adoption-gated and get added only when the project adopts them.

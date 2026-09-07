@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { index, integer, primaryKey, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 // Standard tables only. Anything a project may or may not adopt (orders, ai_jobs, …) is added
 // here when it adopts it. `members` is the exception: most projects need a public-side login,
@@ -89,65 +89,8 @@ export const memberSessions = sqliteTable(
   (table) => [uniqueIndex("uq_member_sessions_session_token").on(table.sessionToken), index("idx_member_sessions_member_id").on(table.memberId), index("idx_member_sessions_expires_at").on(table.expiresAt)],
 );
 
-export const categories = sqliteTable(
-  "categories",
-  {
-    id: integer("id").primaryKey({ autoIncrement: true }),
-    name: text("name").notNull(),
-    slug: text("slug").notNull(),
-    createdAt: createdAt(),
-    updatedAt: text("updated_at").notNull(),
-  },
-  (table) => [uniqueIndex("uq_categories_slug").on(table.slug)],
-);
-
-export const tags = sqliteTable(
-  "tags",
-  {
-    id: integer("id").primaryKey({ autoIncrement: true }),
-    name: text("name").notNull(),
-    slug: text("slug").notNull(),
-    createdAt: createdAt(),
-    updatedAt: text("updated_at").notNull(),
-  },
-  (table) => [uniqueIndex("uq_tags_slug").on(table.slug)],
-);
-
-export const posts = sqliteTable(
-  "posts",
-  {
-    id: integer("id").primaryKey({ autoIncrement: true }),
-    publicId: text("public_id").notNull(),
-    authorId: integer("author_id")
-      .notNull()
-      .references(() => adminUsers.id),
-    categoryId: integer("category_id").references(() => categories.id),
-    title: text("title").notNull(),
-    slug: text("slug").notNull(),
-    body: text("body").notNull(),
-    status: text("status", { enum: ["draft", "published", "archived"] }).notNull(),
-    publishedAt: text("published_at"),
-    createdAt: createdAt(),
-    updatedAt: text("updated_at").notNull(),
-  },
-  (table) => [uniqueIndex("uq_posts_public_id").on(table.publicId), uniqueIndex("uq_posts_slug").on(table.slug), index("idx_posts_author_id").on(table.authorId), index("idx_posts_category_id").on(table.categoryId), index("idx_posts_status").on(table.status), index("idx_posts_published_at").on(table.publishedAt)],
-);
-
-// Composite PK, no surrogate id — the documented exception (DEV-07 §4-5).
-export const postTags = sqliteTable(
-  "post_tags",
-  {
-    postId: integer("post_id")
-      .notNull()
-      .references(() => posts.id),
-    tagId: integer("tag_id")
-      .notNull()
-      .references(() => tags.id),
-    createdAt: createdAt(),
-  },
-  (table) => [primaryKey({ columns: [table.postId, table.tagId] }), index("idx_post_tags_tag_id").on(table.tagId)],
-);
-
+// Row metadata for an object in R2; `key` is the object key. Delete this table and the BUCKET
+// binding together — neither is useful without the other.
 export const media = sqliteTable(
   "media",
   {

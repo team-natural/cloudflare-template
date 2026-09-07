@@ -35,12 +35,17 @@ test.describe("login screen", () => {
     expect((await request.get("/api/v1/auth/me")).status()).toBe(401);
     expect((await request.get("/api/v1/inquiries")).status()).toBe(401);
     expect((await request.get("/api/v1/inquiries/anything")).status()).toBe(401);
+    expect((await request.get("/api/v1/media")).status()).toBe(401);
+    expect((await request.get("/api/v1/media/anything")).status()).toBe(401);
 
     // Astro answers a mutating request 403 before the route runs, so these carry an Origin —
     // without it the assertion would pass on the CSRF check, not the guard.
     const headers = { Origin: baseURL! };
     expect((await request.post("/api/v1/inquiries/anything/start", { headers })).status()).toBe(401);
     expect((await request.delete("/api/v1/inquiries/anything", { headers })).status()).toBe(401);
+    expect((await request.post("/api/v1/media", { headers, multipart: { file: { name: "a.png", mimeType: "image/png", buffer: Buffer.alloc(4) } } })).status()).toBe(401);
+    expect((await request.patch("/api/v1/media/anything", { headers, data: {} })).status()).toBe(401);
+    expect((await request.delete("/api/v1/media/anything", { headers })).status()).toBe(401);
   });
 
   test("a mutating request from another origin is refused", async ({ request }) => {

@@ -20,10 +20,16 @@ Workers but share one D1, one R2 bucket, and the schema in `packages/schema`.
 3. `apps/*/wrangler.jsonc`: replace every `replace-with-*` placeholder. **`database_id` must be
    identical in both apps** — it also keys the local sqlite file, so a mismatch silently gives each
    app its own database.
-4. If the project has no public-side login, delete the `members` / `member_sessions` tables,
-   `apps/public/src/lib/server/`, `apps/public/src/pages/{login.astro,mypage,api}`, and the KV
-   binding from `apps/public/wrangler.jsonc` — **before the first `pnpm db:generate`**, or the
-   migration will contain them.
+4. Delete what the project does not need, **before the first `pnpm db:generate`** — after it, the
+   migration contains those tables and removing them is no longer a deletion.
+
+   | No… | Delete |
+   | --- | --- |
+   | public-side login | `members` / `member_sessions`; public's `lib/server/{auth,services/auth.ts,services/members.ts,validation/auth.ts}`, `pages/{login.astro,mypage,api/v1/auth}`, `lib/components/{login-form,logout-button}.svelte`; public's KV binding and its `SESSION_TTL_DAYS` / `AUTH_LOCKOUT_*` vars |
+   | contact form | `inquiries`; both apps' `inquiries` services, validation, routes and tests |
+   | file uploads | `media`; admin's `media` service, validation, routes and tests; the `BUCKET` binding in both apps and `r2Buckets` in admin's `vitest.config.ts` |
+   | password reset | `password_reset_tokens` |
+
 5. `pnpm db:generate` → `pnpm db:migrate` → seed an admin (see Commands).
 
 ## Commands
