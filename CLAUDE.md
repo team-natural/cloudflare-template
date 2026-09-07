@@ -13,24 +13,22 @@ Workers but share one D1, one R2 bucket, and the schema in `packages/schema`.
 
 ## Bootstrapping a new project
 
-1. `.devcontainer/.env`: set `COMPOSE_PROJECT_NAME` (docker compose prefixes containers, volumes
-   and networks with it, and it keeps each project's `claude-config` volume separate), and change
-   `APP_PORT_DEV_PUBLIC` / `APP_PORT_DEV_ADMIN` so they don't collide with other projects.
-2. `.devcontainer/devcontainer.json`: `name`, and the `portsAttributes` keys if the ports changed.
-3. `apps/*/wrangler.jsonc`: replace every `replace-with-*` placeholder. **`database_id` must be
-   identical in both apps** — it also keys the local sqlite file, so a mismatch silently gives each
-   app its own database.
-4. Delete what the project does not need, **before the first `pnpm db:generate`** — after it, the
-   migration contains those tables and removing them is no longer a deletion.
+The ordered procedure is in `README.md`. Two constraints that bite silently, and belong here
+because they apply whenever the subject comes up:
 
-   | No… | Delete |
-   | --- | --- |
-   | public-side login | `members` / `member_sessions`; public's `lib/server/{auth,services/auth.ts,services/members.ts,validation/auth.ts}`, `pages/{login.astro,mypage,api/v1/auth}`, `lib/components/{login-form,logout-button}.svelte`; public's KV binding and its `SESSION_TTL_DAYS` / `AUTH_LOCKOUT_*` vars |
-   | contact form | `inquiries`; both apps' `inquiries` services, validation, routes and tests |
-   | file uploads | `media`; admin's `media` service, validation, routes and tests; the `BUCKET` binding in both apps and `r2Buckets` in admin's `vitest.config.ts` |
-   | password reset | `password_reset_tokens` |
+- **`database_id` must be identical in both apps.** It also keys the local sqlite file, so a
+  mismatch gives each app its own database with no error.
+- **Deleting an unused feature must happen before the first `pnpm db:generate`.** After that the
+  migration contains its tables and removing them is a migration, not a deletion.
 
-5. `pnpm db:generate` → `pnpm db:migrate` → seed an admin (see Commands).
+What comes out for each feature:
+
+| No… | Delete |
+| --- | --- |
+| public-side login | `members` / `member_sessions`; public's `lib/server/{auth,services/auth.ts,services/members.ts,validation/auth.ts}`, `pages/{login.astro,mypage,api/v1/auth}`, `lib/components/{login-form,logout-button}.svelte`; public's KV binding and its `SESSION_TTL_DAYS` / `AUTH_LOCKOUT_*` vars |
+| contact form | `inquiries`; both apps' `inquiries` services, validation, routes and tests |
+| file uploads | `media`; admin's `media` service, validation, routes and tests; the `BUCKET` binding in both apps and `r2Buckets` in admin's `vitest.config.ts` |
+| password reset | `password_reset_tokens` |
 
 ## Commands
 

@@ -55,7 +55,7 @@ git commit / git push                     → 人間がやる（AI は実行し�
 ## 1. 全体像：何がどこにあるか
 
 ```
-（リポジトリルート）― pnpm workspaces + Turborepo のモノレポ（DEV-01 §2、GOV-01 D-001）
+（リポジトリルート）― pnpm workspaces + Turborepo のモノレポ（DEV-01 §1・§2）
 ├── apps/
 │   ├── public/             ← 公開サイト（独立した Cloudflare Worker。src/pages, src/components,
 │   │                          src/lib/server（お問い合わせ送信のみ）, tests/, playwright.config.ts）
@@ -69,7 +69,7 @@ git commit / git push                     → 人間がやる（AI は実行し�
 │   └── content/            ← 開発者が更新する Markdown（Content Collections の実体）
 │
 ├── eslint.config.js          ← レイヤー境界の機械検証（eslint-plugin-boundaries）
-├── .github/workflows/ci.yml  ← dev / main 宛の PR・push で check → test → build（GOV-01 D-002）
+├── .github/workflows/ci.yml  ← dev / main 宛の PR・push で check → test → build（DEV-08 §3）
 │
 ├── docs/                   ← プロジェクト仕様書（何を作るか。人間が読む）
 │   ├── 00_INTAKE.md        ← ヒアリング情報の起点（全文書の入力源）
@@ -140,7 +140,7 @@ git commit / git push                     → 人間がやる（AI は実行し�
 |  | コードレビュー | `pnpm check` + 人間レビュー（Claude Code 本体の `code-review` も利用可） | — |
 |  | セキュリティレビュー（リリース前必須） | `security-review` スキル | スキル |
 |  | 全画面の最終ビジュアルスイープ | `design-review` | スキル |
-|  | 完了ゲート・デプロイ | DEV-08 §7 の検証完了ゲート → `dev` / `main` へのマージで Cloudflare Workers Builds が自動実行（DEV-08 §3、GOV-01 D-002） | — |
+|  | 完了ゲート・デプロイ | DEV-08 §7 の検証完了ゲート → `dev` / `main` へのマージで Cloudflare Workers Builds が自動実行（DEV-08 §3） | — |
 
 > テストを書くタイミングは**ステップ 5 と 6 のどちらでもよい**。機能ごとに書けば手戻りが小さく、
 > ステップ 6 でまとめて書けば仕様が固まってから書ける。どちらにせよ DEV-03 §2 の DoD と
@@ -305,7 +305,7 @@ git commit / git push                     → 人間がやる（AI は実行し�
 ```
 
 > CI（`.github/workflows/ci.yml`）が `dev` / `main` 宛の PR と push で
-> `pnpm check` → `pnpm db:generate` → `pnpm test` → `pnpm build` を回す（GOV-01 D-002）。
+> `pnpm check` → `pnpm db:generate` → `pnpm test` → `pnpm build` を回す（DEV-08 §3）。
 > `db:generate` を挟むのは、テンプレートが `migrations/` を同梱しないため（案件では差分なしで
 > 終わり、スキーマのドリフト検出も兼ねる）。E2E は CI では実行していない。
 
