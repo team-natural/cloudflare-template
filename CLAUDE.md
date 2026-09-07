@@ -125,6 +125,15 @@ Two rules that look like implementation details but are not:
 page frontmatter: `Astro.response.headers` does not reach a `Response` returned from a page, so
 redirects would go out cacheable. The admin subdomain needs no equivalent.
 
+Lockout counts per IP as well as per account, and locally every request arrives from `127.0.0.1` —
+so five failed attempts lock every account for 15 minutes, and the symptom is a 429 on a password
+that is correct. Clear it from `apps/admin`, where both the binary and the relative path resolve:
+
+```bash
+npx wrangler kv key list --binding KV --local --persist-to ../../.wrangler-state
+npx wrangler kv key delete "auth-lock:ip:127.0.0.1" --binding KV --local --persist-to ../../.wrangler-state
+```
+
 ## Testing
 
 Unit tests run inside workerd via `@cloudflare/vitest-plugin`, not Node — `hashPassword` needs Web
