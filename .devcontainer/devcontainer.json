@@ -14,9 +14,5 @@
     "NODE_OPTIONS": "--dns-result-order=ipv4first"
     // Works around a localhost IPv4/IPv6 mismatch that breaks astro build's prerendering step.
   },
-  "portsAttributes": {
-    "5173": { "label": "Public Dev Server", "onAutoForward": "notify" },
-    "5174": { "label": "Admin Dev Server", "onAutoForward": "notify" }
-  },
   "postCreateCommand": "bash .devcontainer/setup.sh"
 }

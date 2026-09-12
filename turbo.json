@@ -1,5 +1,6 @@
 {
   "$schema": "https://turborepo.dev/schema.json",
+  "globalPassThroughEnv": ["APP_PORT_DEV_PUBLIC", "APP_PORT_DEV_ADMIN"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
