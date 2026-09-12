@@ -33,8 +33,9 @@ Edit `.devcontainer/.env`:
 - `APP_PORT_DEV_PUBLIC` / `APP_PORT_DEV_ADMIN` — change so they don't collide with other projects
   running side by side
 
-Then `.devcontainer/devcontainer.json`: `name`, and the `portsAttributes` keys if the ports
-changed. Add any OS packages the project needs to `.devcontainer/Dockerfile`.
+Then `.devcontainer/devcontainer.json`: `name`. The ports need no edit there — docker compose and
+both `astro.config.mjs` read them from `.env`. Add any OS packages the project needs to
+`.devcontainer/Dockerfile`.
 
 ### 2. Start the container and sign in to Claude Code
 
@@ -129,9 +130,9 @@ pnpm check          # format + lint + typecheck + unit tests
 pnpm test:e2e       # needs pnpm db:generate first
 ```
 
-Sign in at `http://localhost:5174` with the account from step 8. Use `localhost`, not the network
-URL the dev server prints — the session cookie is `Secure`, and only `localhost` counts as a
-secure context over plain HTTP.
+Sign in at `http://localhost:<APP_PORT_DEV_ADMIN>` (see step 1) with the account from step 8. Use
+`localhost`, not the network URL the dev server prints — the session cookie is `Secure`, and only
+`localhost` counts as a secure context over plain HTTP.
 
 ### 10. Repository
 
