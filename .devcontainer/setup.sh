@@ -5,6 +5,12 @@ cd "$(dirname "$0")/.."
 # claude-config volume is root-owned at first; fix it or login won't persist
 sudo chown -R vscode:vscode /home/vscode/.claude
 
+# The claude-code Feature installs as root, so `claude update` fails with "Insufficient
+# permissions" and the CLI stays at the image's version. Hand the package to vscode, then
+# pull the latest so new models (which gate on the CLI version) are usable right away.
+sudo chown -R vscode:nvm "$(npm root -g)/@anthropic-ai"
+npm install -g @anthropic-ai/claude-code@latest
+
 # Enable the pnpm shim bundled with Node via Corepack (this is a pnpm workspace —
 # see pnpm-workspace.yaml / package.json "packageManager")
 corepack enable
