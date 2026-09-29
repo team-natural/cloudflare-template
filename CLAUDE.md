@@ -53,6 +53,11 @@ Claude Code's auth lives in a named volume (`claude-config` at `/home/vscode/.cl
 bind mount, so **each project container needs its own `claude` login**. The volume is root-owned on
 creation, which is why `setup.sh` chowns it on every `postCreateCommand`.
 
+The Feature installs `@anthropic-ai/claude-code` as root, which makes `claude update` fail with
+"Insufficient permissions" and pins the CLI to the image's version — new models refuse a CLI that
+is too old. `setup.sh` chowns that package to `vscode` and pulls `@latest`, so a rebuilt container
+starts current and `claude update` works afterwards.
+
 `setup.sh` also runs `corepack enable` + `pnpm install`, and installs `context-mode`,
 `@playwright/mcp` and Chromium. `Dockerfile` adds `uv`, which the Semble MCP server needs.
 
