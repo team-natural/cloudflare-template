@@ -145,16 +145,18 @@ related-docs:
 
 ## 3. リリース・ロールバック実作業（旧 OPS-04 相当）
 
-デプロイ基盤・環境構成・CI/CD・デプロイゲートは DEV-08 §1〜§6 を参照。デプロイの起動方法は **DEV-08 §3 で確定済み**: 検査（CI）は GitHub Actions（`.github/workflows/ci.yml`）、デプロイ（CD）は Cloudflare Workers Builds の GitHub 連携（`dev` → staging / `main` → production）。本章は自動デプロイと手動 `wrangler deploy` の双方を前提に、人間が行う確認作業とロールバック実作業のみを定義する。
+デプロイ基盤・環境構成・CI/CD・デプロイゲートは DEV-08 §1〜§6 を参照。デプロイの起動方法は **DEV-08 §3 で確定済み**: 検査（CI）は GitHub Actions（`.github/workflows/ci.yml`）、デプロイ（CD）は Cloudflare Workers Builds の GitHub 連携（`dev` → staging / `main` → production）。初回セットアップ（リソース作成・Workers Builds 連携・staging の Access 保護・管理者の作成）は、リポジトリ直下の **`DEPLOY.md`**（全プロジェクト共通）に従う。本章は、人間が行う確認作業とロールバック実作業のみを定義する。
 
 ### 3-1. 通常リリース手順
 
 ```
 1) リリース対象 PR を集約し、CI（`pnpm check` = フォーマット / Lint / 型チェック、全テスト。Turborepo で
    `apps/public`・`apps/admin` それぞれに対して実行される）全 Pass を確認
-   （CI は導入済み — `.github/workflows/ci.yml` が `dev` / `main` 宛の PR・push で `pnpm check` → `pnpm db:generate` → `pnpm test` → `pnpm build` を実行する。DEV-08 §3）
+   （`.github/workflows/ci.yml` が PR と `dev` / `main` への push で `pnpm db:generate` → マイグレーション差分チェック →
+   `pnpm check` → `pnpm test:e2e` → `pnpm build` を実行する。DEV-08 §3-1）
 2) リリースノート（GitHub Release Draft）を作成
-3) main へ PR 経由でマージ → `wrangler deploy` を実行（CI 経由 or 手動、DEV-08 §3 参照）。
+3) dev → main へ PR 経由でマージ → Workers Builds が production の 2 Worker を自動でビルド・デプロイする
+   （admin はマイグレーション適用 → デプロイ）。GitHub のコミットに付く Worker ごとのチェックが緑になるまで待つ。
    Cloudflare Workers のデプロイはエッジでアトミックに切り替わるため無停止
 4) ヘルスチェック（全エンドポイントの定義は DEV-08 §9）
    curl https://{APP_URL}/api/v1/health
@@ -191,7 +193,7 @@ related-docs:
 ```
 1) コードのロールバック：
    Cloudflare ダッシュボード（Workers > Deployments）または
-   `wrangler deployments list` で前デプロイメントを確認し、`wrangler rollback` で戻す
+   `wrangler rollback` で前デプロイメントへ戻す（コマンドの形は `DEPLOY.md`「公開後の運用 › 切り戻し」）
 2) マイグレーションを伴う場合：
    - 前方互換マイグレーション → D1 はそのまま（コードのみ戻す）
    - 破壊的マイグレーション → 戻すのではなく、新規マイグレーションで修正
@@ -209,7 +211,7 @@ related-docs:
 1) main から hotfix ブランチを作成（hotfix/短い説明）
 2) 修正 + 関連テスト・静的解析・フォーマッタを通す
 3) PR 作成 → 承認は Tech Lead（兼務可）。P0 対応時は事後レビュー可
-4) マージ → デプロイ実行（§3-1 の 3、CI 経由 or 手動）→ §3-1 の 4〜7 を実施
+4) main へマージ → 自動デプロイ（§3-1 の 3）→ §3-1 の 4〜7 を実施
 5) 修正を開発ブランチにも反映
 ```
 

@@ -18,7 +18,7 @@ related-docs:
 
 リリース方式、ロールバック判断基準、環境別ゲート、検証完了ゲートを定義する。**本書は判断基準の定義であり、実作業手順（コマンド・当日のチェックリスト）は OPS-02 に委譲する**。
 
-インフラは DEV-01 §1 の通り Cloudflare Workers を採用している。ホスティング・スケーリング・エッジでの実行は基盤（Cloudflare）に委ねられるが、Laravel Cloud のような git push 起点の自動ビルド・デプロイはこのテンプレートにまだ組み込まれていない — デプロイ実行（`wrangler deploy`）をどう起動するか（CI 経由か手動か）は §3 の通り **Open**。本書で定義するのは「基盤に何を設定するか」と「何をもってリリース可とするか」のみ。
+インフラは DEV-01 §1 の通り Cloudflare Workers を採用している。デプロイは Cloudflare Workers Builds の GitHub 連携による git push 起点（§3）。本書で定義するのは「基盤に何を設定するか」と「何をもってリリース可とするか」のみで、**初回セットアップの実作業手順はリポジトリ直下の `DEPLOY.md`**（全プロジェクト共通）に置く。
 
 ## 0-H. ハイブリッド編集ガイド（要点）
 
@@ -43,7 +43,7 @@ related-docs:
 | オブジェクトストレージ | Cloudflare R2（`env.BUCKET`、テンプレート標準バインディング） |
 | メトリクス・ログ | Cloudflare Workers Logs / Analytics（標準、追加設定不要）。エラー監視が必要になった時点で `@sentry/cloudflare`（Workers 専用 SDK）を追加（DEV-01 §2） |
 
-このテンプレートは **1 リポジトリ内の pnpm workspaces + Turborepo モノレポ**構成で、`apps/public`（公開サイト）と `apps/admin`（管理 CMS）を独立した Cloudflare Worker として別々にデプロイする（`/admin` パスへの統合ではない。DEV-01 §1）。D1 データベースと R2 バケットは 1 サービスにつき 1 つを両アプリで共有する。作成（`wrangler d1 create` / `wrangler r2 bucket create`）はどちらか一方のアプリの `wrangler.jsonc` から一度だけ行い、生成された `database_id` / `bucket_name` をもう一方の `wrangler.jsonc` にそのままコピーする。D1 マイグレーション（`packages/schema/migrations/` ディレクトリ、`wrangler d1 migrations apply`）は**`apps/admin` からのみ**実行する（同一リポジトリ内の app 単位の所有権。`CLAUDE.md` D1/R2 バインディングルール参照）。
+このテンプレートは **1 リポジトリ内の pnpm workspaces + Turborepo モノレポ**構成で、`apps/public`（公開サイト）と `apps/admin`（管理 CMS）を独立した Cloudflare Worker として別々にデプロイする（`/admin` パスへの統合ではない。DEV-01 §1）。D1 データベースと R2 バケットは 1 サービス・1 環境につき 1 つを両アプリで共有し、`database_id` / `bucket_name` は両アプリの `wrangler.jsonc` で同じ値にする（作成手順は `DEPLOY.md`）。D1 マイグレーション（`packages/schema/migrations/` ディレクトリ、`wrangler d1 migrations apply`）は**`apps/admin` からのみ**実行する（同一リポジトリ内の app 単位の所有権。`CLAUDE.md` D1/R2 バインディングルール参照）。
 
 ---
 
@@ -54,8 +54,10 @@ PRD-02 §3 の 3 面構成に対応する。環境分離は `apps/public`/`apps/
 | 環境 | 実体 | デプロイトリガー |
 | --- | --- | --- |
 | local | 開発者ローカル（Dev Container。D1 / R2 はローカルエミュレーション） | — |
-| staging | Cloudflare Workers（各アプリの `wrangler.jsonc` の environments、テスト用 D1 / R2） | `dev` ブランチへの push（Cloudflare Workers Builds が `wrangler deploy --env staging` を実行 — §3） |
-| production | Cloudflare Workers（本番 D1 / R2） | `main` ブランチへの push（同上、`wrangler deploy`） |
+| staging | Cloudflare Workers（各アプリの `wrangler.jsonc` の environments、テスト用 D1 / R2）。`*.workers.dev` 上で Cloudflare Access により保護 | `dev` ブランチへの push（Workers Builds が `CLOUDFLARE_ENV=staging` でビルドし `pnpm run deploy` — §3） |
+| production | Cloudflare Workers（本番 D1 / R2）。独自ドメインを使う場合は `workers_dev: false` | `main` ブランチへの push（同上、`CLOUDFLARE_ENV=production`） |
+
+環境はビルド時の `CLOUDFLARE_ENV` で決まり、`wrangler deploy --env` では切り替えられない（`@astrojs/cloudflare` がビルド時に単一環境の設定を生成するため）。1 プロジェクトにつき Worker は 4 つ（`<name>-staging` / `<name>-production` × 2 アプリ）。
 
 `dev` はこのテンプレートの既定ブランチ（統合ブランチ）。`main`（本番）はテンプレート自体がデプロイされないため未作成であり、案件の bootstrap 時に作成する（README のチェックリスト参照）。
 
@@ -80,13 +82,16 @@ CD を GitHub Actions に置かないのは、Workers Builds が GitHub 連携�
 
 ```
 1. pnpm/setup（Node + pnpm + 依存インストール。require-lockfile で lockfile 必須）
-2. pnpm db:generate      ← check より前。migrations/ は同梱しないため、
+2. pnpm db:generate      ← check より前。テンプレートは migrations/ を同梱しないため、
                             check 内の単体テストも e2e もこれ無しでは動かない
-3. pnpm check（format:check + lint + typecheck + 単体テストを Turborepo が fan out）
-4. playwright install chromium（キャッシュあり）
-5. pnpm test:e2e（--concurrency=1。両スイートが同じローカル D1 を使うため）
-6. pnpm build（両 Worker のビルド成否）
-7. 失敗時のみ test-results/ をアーティファクト化（trace: on-first-retry の回収）
+3. Migrations match the schema
+                         ← migrations/ をコミットしている案件では、2 で差分が出たら失敗。
+                            デプロイが適用するのはコミット済みのマイグレーションだけのため
+4. pnpm check（format:check + lint + typecheck + 単体テストを Turborepo が fan out）
+5. playwright install chromium（キャッシュあり）
+6. pnpm test:e2e（--concurrency=1。両スイートが同じローカル D1 を使うため）
+7. pnpm build（両 Worker のビルド成否）
+8. 失敗時のみ test-results/ をアーティファクト化（trace: on-first-retry の回収）
 ```
 
 > `corepack enable` ではなく `pnpm/setup` を使う。corepack は pnpm のダウンロード前に確認プロンプトを出し、ランナーには応答する手段がない。
@@ -97,15 +102,19 @@ CD を GitHub Actions に置かないのは、Workers Builds が GitHub 連携�
 
 ### 3-2. マージ後（CD — Workers Builds 側の設定）
 
-Worker を 2 つ作成し、どちらも同じリポジトリに接続する。設定はダッシュボードの **Settings > Builds**。
+Worker を 4 つ（2 アプリ × staging / production）作成し、すべて同じリポジトリに接続する。作成・設定の手順は `DEPLOY.md` を正本とし、ここでは何を設定するかだけを示す。
 
 | 設定 | `apps/public` の Worker | `apps/admin` の Worker |
 | --- | --- | --- |
 | Root directory | `apps/public` | `apps/admin` |
-| Build Watch Paths | `apps/public/**`, `packages/**` | `apps/admin/**`, `packages/**` |
-| Deploy command（production branch） | `npx wrangler deploy` | `npx wrangler d1 migrations apply DB --remote && npx wrangler deploy` |
+| Build command / Deploy command | `pnpm run build` / `pnpm run deploy` | 同じ |
+| Build variables | `CLOUDFLARE_ENV` = `staging` / `production` | 同じ |
+| Build Watch Paths | `apps/public/**`, `packages/**`, `pnpm-lock.yaml` | `apps/admin/**`, `packages/**`, `pnpm-lock.yaml` |
+| `deploy` スクリプトの中身 | `wrangler deploy` | `wrangler d1 migrations apply DB --remote` → `wrangler deploy` |
 
-**D1 マイグレーションは Workers Builds が自動では実行しない。** 実行されるのは build と deploy のコマンドのみのため、上表のとおり `apps/admin` 側の Deploy command に前置する。これを怠ると、新しいカラムを前提としたコードが未適用の DB に対してデプロイされる。`wrangler d1 migrations apply` は適用済みを記録して冪等なので再実行は安全。`apps/public` 側には設定しない（マイグレーションは `apps/admin` からのみ — DEV-01 §1、`CLAUDE.md`）。API トークンには D1 の編集権限が必要。
+public と admin は並行してデプロイされ順序が保証されないため、§4 の前方互換マイグレーションは必須とする。
+
+**D1 マイグレーションは Workers Builds が自動では実行しない。** 実行されるのは build と deploy のコマンドのみのため、`apps/admin` の `deploy` スクリプトに前置している。これを怠ると、新しいカラムを前提としたコードが未適用の DB に対してデプロイされる。`wrangler d1 migrations apply` は適用済みを記録して冪等なので再実行は安全。`apps/public` 側には設定しない（マイグレーションは `apps/admin` からのみ — DEV-01 §1、`CLAUDE.md`）。API トークンには D1 の編集権限が必要。
 
 破壊的変更を含むマイグレーションは自動適用の対象外とし、手動で段階適用する（§7）。デプロイ後の Health check（§9）と通知は OPS-02 の監視系に委ねる。
 
@@ -130,7 +139,7 @@ Cloudflare Workers のデプロイはエッジでアトミックに切り替わ�
 
 | 区分 | 条件 | 対応 |
 | --- | --- | --- |
-| 即時ロールバック | エラー率 > 5% / 5 分連続 | 前デプロイメントへ戻す（Wrangler の Deployments 履歴から直前ビルドを再デプロイ） |
+| 即時ロールバック | エラー率 > 5% / 5 分連続 | 前デプロイメントへ戻す（ダッシュボードの Deployments、または `wrangler rollback`） |
 | 即時ロールバック | 認証・決済の致命的不具合 | 同上 |
 | 計画ロールバック | パフォーマンス悪化（p95 がベースラインの 2 倍） | 監視後判断 |
 | DB 変更 | マイグレーション適用後に問題が判明 | D1 マイグレーションは forward-only のため DB 自体は戻さず、修正用の新しい forward migration を書いて対応する。Worker のコードのみ前デプロイに戻すことは可能 |
@@ -268,4 +277,4 @@ SESSION_SIGNING_KEY=
 - ロールバック条件が即時 / 計画で分かれているか
 - 検証完了ゲートが本番リリース判断に使えるか
 - 環境変数一覧がプロジェクトの採用機能（DEV-01 §2）と整合しているか
-- 実作業手順が本書に紛れ込んでいないか（OPS-02 へ委譲されているか）
+- 実作業手順が本書に紛れ込んでいないか（日常運用は OPS-02、初回セットアップは `DEPLOY.md` へ委譲されているか）

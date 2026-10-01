@@ -79,6 +79,21 @@ generates its own and commits them. Two consequences:
 - Deleting only the `.sql` file leaves `meta/`, and drizzle-kit then reports "no changes" and
   generates nothing.
 
+## Deploy
+
+The procedure is `DEPLOY.md`, shared by every project — do not restate it here. Constraints that
+fail silently:
+
+- **The environment is fixed at build time by `CLOUDFLARE_ENV`.** The adapter writes a
+  single-environment `dist/server/wrangler.json` that `wrangler deploy` follows, so `--env` cannot
+  switch it. Any hand-run `wrangler … --env` after a local build needs `--config wrangler.jsonc`
+  to bypass that redirect; `seed --remote` and `db:migrate:remote` already pass it.
+- **Deploys apply only committed migrations.** CI fails when `pnpm db:generate` produces a diff
+  against the committed ones.
+- **KV titles are account-wide** — prefix every resource name with the project name.
+- `session: false` in both `astro.config.mjs` is load-bearing: without it the adapter adds an
+  id-less `SESSION` KV binding and every deploy provisions a namespace.
+
 ## Dev servers
 
 `astro dev` **detaches into the background** when it detects an AI coding agent, so it survives the

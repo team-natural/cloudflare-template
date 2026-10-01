@@ -73,32 +73,24 @@ remove for each. Do this now, not after step 8.
 
 ### 5. Cloudflare resources
 
-Create one of each, then copy the ids into **both** `wrangler.jsonc` files:
-
-```bash
-npx wrangler login
-npx wrangler d1 create <db-name>
-npx wrangler r2 bucket create <bucket-name>
-npx wrangler kv namespace create KV
-```
+Create a staging and a production copy of each, and put the ids into the `staging` and
+`production` blocks of **both** `wrangler.jsonc` files — **`DEPLOY.md` steps 2–3** have the
+commands and the `<project>-<env>` naming. Leave the top-level `replace-with-*` placeholders alone:
+local dev ignores them, and a deploy that forgot `CLOUDFLARE_ENV` then fails instead of shipping.
 
 `database_id` **must be identical in both apps** — it also keys the local sqlite file, so a
-mismatch silently gives each app its own database. Replace every `replace-with-*` placeholder,
-including the `staging` and `production` blocks (`vars`, `d1_databases` and `kv_namespaces` are
-non-inheritable, which is why they repeat).
+mismatch silently gives each app its own database. `vars`, `d1_databases` and `kv_namespaces` are
+non-inheritable, which is why they repeat in each block.
 
-R2 is only needed if the project keeps media uploads (step 4); KV only if it keeps a login, which
-uses it for lockout counters.
+R2 is only needed if the project keeps media uploads (step 4). KV holds the lockout counters: admin
+always needs it, public only if it keeps member login.
 
 ### 6. Custom domains
 
 Neither `wrangler.jsonc` declares `routes`, so a deploy lands on `workers.dev` — fine for staging,
 [not recommended for production](https://developers.cloudflare.com/workers/configuration/routing/workers-dev/).
-Add the domain to each app's production block:
-
-```jsonc
-"routes": [{ "pattern": "example.com", "custom_domain": true }]
-```
+Add the domain to each app's production block, together with `workers_dev: false` — without it
+production stays reachable on `workers.dev` as well. The exact blocks are in **`DEPLOY.md` step 3**.
 
 `custom_domain` means the Worker is the origin, and Cloudflare creates the DNS record and
 certificate. A plain route instead puts the Worker in front of an existing origin and needs a
@@ -108,12 +100,12 @@ proxied DNS record you create yourself.
 
 `apps/*/.dev.vars.example` → `.dev.vars` (gitignored). Nothing is required by the code that ships
 today. Non-secret configuration belongs in `wrangler.jsonc` `vars`; in staging and production the
-same keys become Workers Secrets (`wrangler secret put`).
+same keys become Workers Secrets (**`DEPLOY.md` step 8**).
 
 ### 8. Schema, migration, first account
 
 ```bash
-pnpm db:generate    # → packages/schema/migrations/ — commit this
+pnpm db:generate    # → packages/schema/migrations/ — commit this; deploys apply only what is committed
 pnpm db:migrate     # applies to the shared local D1
 pnpm --filter admin seed -- --table=admin_users --email=… --password=… --name=…
 ```
@@ -139,6 +131,11 @@ Sign in at `http://localhost:<APP_PORT_DEV_ADMIN>` (see step 1) with the account
 `dev` is this template's default branch and CI runs on it. Create `main` for production, then
 start replacing the scaffold: `apps/public/src/pages/index.astro` is a placeholder, and the
 `docs/` set is filled in per project from `docs/00_INTAKE.md`.
+
+### 11. Deploy
+
+Follow **`DEPLOY.md`** (Japanese, shared by every project): four Workers per project on Workers
+Builds, `dev` → staging and `main` → production.
 
 ## Day-to-day
 
