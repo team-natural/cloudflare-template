@@ -4,7 +4,10 @@ import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "astro/config";
 
 export default defineConfig({
+  site: "https://xxx.com",
   output: "server",
+  // Same as apps/admin/astro.config.mjs: without it every deploy provisions a SESSION KV namespace.
+  session: false,
   adapter: cloudflare({
     // Shared with apps/admin, as in production.
     persistState: { path: "../../.wrangler-state" },

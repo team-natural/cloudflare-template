@@ -4,6 +4,7 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
+      "env": ["CLOUDFLARE_ENV"],
       "outputs": ["dist/**"]
     },
     "dev": {
@@ -26,7 +27,8 @@
       "cache": false
     },
     "db:migrate:remote": {
-      "cache": false
+      "cache": false,
+      "passThroughEnv": ["CLOUDFLARE_ENV"]
     }
   }
 }

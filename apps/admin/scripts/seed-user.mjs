@@ -69,6 +69,8 @@ async function main() {
   const wranglerArgs = ["wrangler", "d1", "execute", db, args.remote ? "--remote" : "--local", "--command", sql];
   // Matches astro.config.mjs's persistState path — apps/admin and apps/public share local D1.
   if (!args.remote) wranglerArgs.push("--persist-to", "../../.wrangler-state");
+  // Explicit --config skips the .wrangler/deploy redirect a local build leaves, which rejects --env.
+  if (args.remote) wranglerArgs.push("--config", "wrangler.jsonc");
   if (args.env) wranglerArgs.splice(4, 0, "--env", args.env);
 
   const result = spawnSync("npx", wranglerArgs, { stdio: "inherit" });

@@ -11,6 +11,8 @@ if (process.argv.includes("dev")) {
 
 export default defineConfig({
   output: "server",
+  // Otherwise the adapter adds an id-less SESSION KV binding and every deploy provisions a namespace.
+  session: false,
   adapter: cloudflare({
     // Shared with apps/public, as in production.
     persistState: { path: "../../.wrangler-state" },

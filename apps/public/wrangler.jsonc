@@ -42,6 +42,8 @@
     },
   ],
 
+  // Selected at build time by CLOUDFLARE_ENV; `wrangler deploy --env` cannot switch it (DEPLOY.md).
+  // With a custom domain, production also needs "workers_dev": false or it stays on workers.dev too.
   "env": {
     "staging": {
       "vars": {

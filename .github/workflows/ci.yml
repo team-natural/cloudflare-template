@@ -22,8 +22,17 @@ jobs:
           cache: true
           require-lockfile: true
 
-      # migrations/ is generated, not committed, and both `check` and the e2e setup need it.
+      # The template ships no migrations, and both `check` and the e2e setup need them.
       - run: pnpm db:generate
+
+      # Deploys apply only committed migrations, so a schema change without one ships code ahead of its DB.
+      - name: Migrations match the schema
+        run: |
+          if [ -n "$(git ls-files packages/schema/migrations)" ] && [ -n "$(git status --porcelain packages/schema/migrations)" ]; then
+            git status --porcelain packages/schema/migrations
+            echo "::error::packages/schema changed without a committed migration. Run pnpm db:generate and commit the result."
+            exit 1
+          fi
 
       - run: pnpm check
 

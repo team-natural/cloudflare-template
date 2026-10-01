@@ -8,6 +8,7 @@
     "dev": "astro dev",
     "build": "NODE_OPTIONS=--dns-result-order=ipv4first astro build",
     "preview": "astro preview",
+    "deploy": ": \"${CLOUDFLARE_ENV:?set CLOUDFLARE_ENV=staging or production}\" && wrangler deploy",
     "typecheck": "wrangler types && astro check",
     "test": "vitest run",
     "test:watch": "vitest",
