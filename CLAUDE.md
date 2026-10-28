@@ -70,6 +70,11 @@ Both apps open the same store: `persistState: { path: "../../.wrangler-state" }`
 `astro.config.mjs`, and every wrangler CLI call passes `--persist-to ../../.wrangler-state`. Drop
 that flag and you silently get a second, empty database.
 
+Each app's `dev` script sets `X_LOCAL_OBSERVABILITY=false`. The Cloudflare Vite plugin otherwise
+starts a trace-store Durable Object under the shared state path, both workerd processes write its
+one SQLite file, and it corrupts within minutes (`SENTRY_DO … SQLITE_CORRUPT`). Production
+`observability` in `wrangler.jsonc` is unaffected.
+
 `packages/schema/migrations/` is generated, not shipped — the template has none, each project
 generates its own and commits them. Two consequences:
 
