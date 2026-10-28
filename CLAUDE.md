@@ -47,7 +47,7 @@ What comes out for each feature:
 
 `docker-compose.yml` mounts only this repository at `/workspace`; sibling projects on the host are
 deliberately invisible. The container just `sleep infinity`s and devcontainer tooling execs in.
-Node 24 and the `claude` CLI come from Dev Container Features, so nothing is installed on the host.
+Node 26 and the `claude` CLI come from Dev Container Features, so nothing is installed on the host.
 
 Claude Code's auth lives in a named volume (`claude-config` at `/home/vscode/.claude`), not a host
 bind mount, so **each project container needs its own `claude` login**. The volume is root-owned on
@@ -58,8 +58,12 @@ The Feature installs `@anthropic-ai/claude-code` as root, which makes `claude up
 is too old. `setup.sh` chowns that package to `vscode` and pulls `@latest`, so a rebuilt container
 starts current and `claude update` works afterwards.
 
-`setup.sh` also runs `corepack enable` + `pnpm install`, and installs `context-mode`,
-`@playwright/mcp` and Chromium. `Dockerfile` adds `uv`, which the Semble MCP server needs.
+`setup.sh` also runs `pnpm install`, and installs `context-mode`, `@playwright/mcp` and Chromium.
+There is no `corepack enable`: Node 25+ no longer ships corepack, and under `set -e` that line
+aborts the whole script. pnpm comes from the Node Feature and switches itself to the
+`packageManager` version (`pmOnFail: download`).
+
+`Dockerfile` adds `uv`, which the Semble MCP server needs.
 
 Ports are published by docker compose only (`devcontainer.json` has no `forwardPorts`), bound to
 `127.0.0.1`.
